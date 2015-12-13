@@ -44,7 +44,7 @@ class IRR(object):
 
 ## Installation
 This lib uses [memcached](http://memcached.org/). Please install it before trying to install this.
-When you have installed memcached, you just need to run `pip install pysmartcache  # TODO`.
+When you have installed memcached, you just need to run `pip install pysmartcache`.
 
 
 ## Extra settings
