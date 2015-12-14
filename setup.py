@@ -6,7 +6,6 @@ setup(
     packages=['pysmartcache', ],
     version='0.1',
     description='PySmartCache is a way to get automatic caching and caching invalidation for functions/methods.',
-    long_description=open('README.md').read(),
     author='Filipe Waitman',
     author_email='filwaitman@gmail.com',
     install_requires=open('requirements.txt').readlines(),
