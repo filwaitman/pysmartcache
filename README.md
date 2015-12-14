@@ -41,6 +41,70 @@ class IRR(object):
         pass
 ```
 
+Learn by doing:
+```python
+import time
+
+from pysmartcache import cache
+
+@cache(['a', 'b'], verbose=True, timeout=10)
+def not_so_efficient_sum(a, b):
+    print 'calculating...'
+    time.sleep(5)
+    return a + b
+
+
+result = not_so_efficient_sum(2, 2)
+# KEY: __main__.not_so_efficient_sum//2//2
+# MISSED
+# calculating...
+
+print result
+# 4
+
+time.sleep(1)
+result = not_so_efficient_sum(2, 2)
+# KEY: __main__.not_so_efficient_sum//2//2
+# HIT (added to cache 1.01 seconds ago)
+
+print result
+# 4
+
+not_so_efficient_sum.cache_info_for(2, 2)  # see info stored about this cached item, if available. Returns None if item not cached
+# {
+#     'age': 6.15,
+#     'date added': datetime.datetime(2015, 1, 1, 1, 1, 1, 1),
+#     'outdated': False,
+#     'timeout': 10,
+#     'value': 4
+# }
+
+time.sleep(5)
+result = not_so_efficient_sum.cache_refresh_for(2, 2)  # recalculate cached info, even if it is now expired. Update 'date added' for this item
+# KEY: __main__.not_so_efficient_sum//2//2
+# REFRESHING
+# calculating...
+
+print result
+# 4
+
+not_so_efficient_sum.cache_info_for(2, 2)
+# {
+#     'age': 5.01,  # just updated
+#     'date added': datetime.datetime(2015, 1, 1, 1, 1, 6, 1),
+#     'outdated': False,
+#     'timeout': 10,
+#     'value': 4
+# }
+
+
+not_so_efficient_sum.cache_invalidate_for(2, 2)  # remove this item from cache
+# KEY: __main__.not_so_efficient_sum//2//2
+# INVALIDATING
+
+not_so_efficient_sum.cache_info_for(2, 2)
+# None
+```
 
 ## Installation
 This lib uses [memcached](http://memcached.org/). Please install it before trying to install this.

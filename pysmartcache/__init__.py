@@ -100,6 +100,10 @@ class CacheEngine(object):
         self.stored_value = self.stored_info['value'] if self.stored_info else None
         self.stored_at = self.stored_info['date added'] if self.stored_info else None
 
+        if self.verbose:
+            print '-' * 50
+            print 'KEY: {}'.format(self.cache_key)
+
     @classmethod
     def _get_timeout(cls, timeout):
         if timeout is None:
@@ -214,10 +218,6 @@ class CacheEngine(object):
             }
 
     def execute(self):
-        if self.verbose:
-            print '-' * 50
-            print 'KEY: {}'.format(self.cache_key)
-
         if self.stored_info:
             if self.stored_info['outdated']:
                 if self.verbose:
