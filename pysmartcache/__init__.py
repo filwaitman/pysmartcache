@@ -1,27 +1,37 @@
 # -*- coding: utf-8 -*-
 import datetime
+from decimal import Decimal
 import functools
 import hashlib
 import inspect
+import json
 import os
 
 import pylibmc
 
 
-def cache_engine_for(func, keys, timeout, hosts, verbose, *function_args, **function_kwargs):
+class UniqueRepresentationNotFound(Exception):
+    pass
+
+
+class InvalidTypeForUniqueRepresentation(Exception):
+    pass
+
+
+def _cache_engine_for(func, keys, timeout, hosts, verbose, *function_args, **function_kwargs):
     return CacheEngine(func, keys, function_args, function_kwargs, timeout=timeout, hosts=hosts, verbose=verbose)
 
 
 def cache_invalidate_for(func, keys, timeout, hosts, verbose, *function_args, **function_kwargs):
-    return cache_engine_for(func, keys, timeout, hosts, verbose, *function_args, **function_kwargs).invalidate()
+    return _cache_engine_for(func, keys, timeout, hosts, verbose, *function_args, **function_kwargs).invalidate()
 
 
 def cache_refresh_for(func, keys, timeout, hosts, verbose, *function_args, **function_kwargs):
-    return cache_engine_for(func, keys, timeout, hosts, verbose, *function_args, **function_kwargs).refresh()
+    return _cache_engine_for(func, keys, timeout, hosts, verbose, *function_args, **function_kwargs).refresh()
 
 
 def cache_info_for(func, keys, timeout, hosts, verbose, *function_args, **function_kwargs):
-    return cache_engine_for(func, keys, timeout, hosts, verbose, *function_args, **function_kwargs).info()
+    return _cache_engine_for(func, keys, timeout, hosts, verbose, *function_args, **function_kwargs).info()
 
 
 def depth_getattr(current_object, key):
@@ -36,27 +46,41 @@ def depth_getattr(current_object, key):
 def get_unique_representation(obj):
     if hasattr(obj, '__cache_key__'):
         result = obj.__cache_key__()
+        if not isinstance(result, basestring):
+            raise InvalidTypeForUniqueRepresentation()
+        result = '.'.join([obj.__module__, obj.__class__.__name__, result])
+
     elif hasattr(obj, 'uuid'):
-        result = obj.uuid
+        result = '.'.join([obj.__module__, obj.__class__.__name__, str(obj.uuid)])
+
     elif hasattr(obj, 'id'):
-        result = obj.id
+        result = '.'.join([obj.__module__, obj.__class__.__name__, str(obj.id)])
+
     elif isinstance(obj, (datetime.datetime, datetime.date, datetime.time)):
         result = obj.isoformat()
+
+    elif isinstance(obj, Decimal):
+        result = str(float(obj))
+
     elif not hasattr(obj, '__iter__'):
-        result = obj
+        try:
+            json.dumps(obj)
+            result = repr(obj)
+        except TypeError:
+            raise UniqueRepresentationNotFound()
+
     elif isinstance(obj, dict):
         result = []
         for key, value in obj.items():
             result.append(get_unique_representation(key))
             result.append(get_unique_representation(value))
         result = '--'.join(result)
+
     else:
         result = []
         for sub_object in obj:
             result.append(get_unique_representation(sub_object))
         result = '--'.join(result)
-
-    result = repr(result)
 
     if len(result) > 150:
         result = hashlib.md5(result).hexdigest()
@@ -65,7 +89,7 @@ def get_unique_representation(obj):
 
 
 class CacheClient(object):
-    ''' This class is isolated in order to avoid creating many connections to memcached '''
+    ''' Singleton for memcached client '''
     @classmethod
     def get(cls, hosts):
         if not hasattr(cls, '_client') or not hasattr(cls, '_client_hosts') or cls._client_hosts != hosts:
@@ -252,20 +276,37 @@ class CacheEngine(object):
         return self.stored_value
 
 
-def cache(keys, timeout=None, hosts=None, verbose=False):
+def cache(include=None, exclude=None, timeout=None, hosts=None, verbose=False):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*function_args, **function_kwargs):
             engine = CacheEngine(func, keys, function_args, function_kwargs, timeout=timeout, hosts=hosts, verbose=verbose)
             return engine.execute()
 
-        wrapper.cache_engine_for = functools.partial(cache_engine_for, func, keys, timeout, hosts, verbose)
+        all_keys = inspect.getargspec(func).args
+        if include and exclude:
+            raise RuntimeError()
+        elif not include and not exclude:
+            keys = all_keys
+        elif include:
+            keys = include
+        elif exclude:
+            for exclude_key in exclude:
+                if exclude_key not in all_keys:
+                    raise RuntimeError()
+                if '.' in exclude_key:
+                    raise RuntimeError()
+
+            keys = [item for item in all_keys if item not in exclude]
+
         wrapper.cache_invalidate_for = functools.partial(cache_invalidate_for, func, keys, timeout, hosts, verbose)
         wrapper.cache_info_for = functools.partial(cache_info_for, func, keys, timeout, hosts, verbose)
         wrapper.cache_refresh_for = functools.partial(cache_refresh_for, func, keys, timeout, hosts, verbose)
 
         wrapper.is_cache_decorated = True
         wrapper.cache_keys = keys
+        wrapper.cache_keys_included = include or []
+        wrapper.cache_keys_excluded = exclude or []
 
         return wrapper
 

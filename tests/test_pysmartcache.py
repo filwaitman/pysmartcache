@@ -427,41 +427,41 @@ class GetUniqueRepresentationHelperTestCase(unittest.TestCase):
             lazy = 2
 
             def __cache_key__(self):
-                return self.lazy * 2
+                return str(self.lazy * 2)
 
         sloth = Sloth()
-        self.assertEquals(get_unique_representation(sloth), repr(4))
+        self.assertEquals(get_unique_representation(sloth), 'tests.test_pysmartcache.Sloth.4')
 
         sloth.lazy = 10
-        self.assertEquals(get_unique_representation(sloth), repr(20))
+        self.assertEquals(get_unique_representation(sloth), 'tests.test_pysmartcache.Sloth.20')
 
     def test_object_with_uuid_attribute(self):
         class Sloth(object):
             uuid = '123'
 
         sloth = Sloth()
-        self.assertEquals(get_unique_representation(sloth), repr('123'))
+        self.assertEquals(get_unique_representation(sloth), 'tests.test_pysmartcache.Sloth.123')
 
         sloth.uuid = '456'
-        self.assertEquals(get_unique_representation(sloth), repr('456'))
+        self.assertEquals(get_unique_representation(sloth), 'tests.test_pysmartcache.Sloth.456')
 
     def test_object_with_id_attribute(self):
         class Sloth(object):
             id = '1'
 
         sloth = Sloth()
-        self.assertEquals(get_unique_representation(sloth), repr('1'))
+        self.assertEquals(get_unique_representation(sloth), 'tests.test_pysmartcache.Sloth.1')
 
         sloth.id = '2'
-        self.assertEquals(get_unique_representation(sloth), repr('2'))
+        self.assertEquals(get_unique_representation(sloth), 'tests.test_pysmartcache.Sloth.2')
 
     def test_datetime_derivate_object(self):
-        self.assertEquals(get_unique_representation(datetime.datetime(2015, 1, 2, 3, 4, 5)), repr('2015-01-02T03:04:05'))
-        self.assertEquals(get_unique_representation(datetime.date(2015, 1, 2)), repr('2015-01-02'))
-        self.assertEquals(get_unique_representation(datetime.time(3, 4, 5)), repr('03:04:05'))
+        self.assertEquals(get_unique_representation(datetime.datetime(2015, 1, 2, 3, 4, 5)), '2015-01-02T03:04:05')
+        self.assertEquals(get_unique_representation(datetime.date(2015, 1, 2)), '2015-01-02')
+        self.assertEquals(get_unique_representation(datetime.time(3, 4, 5)), '03:04:05')
 
     def test_decimal(self):
-        self.assertEquals(get_unique_representation(round(Decimal(1.618033989), 9)), repr(1.618033989))
+        self.assertEquals(get_unique_representation(Decimal(1.618033989)), '1.618033989')
 
     def test_None(self):
         self.assertEquals(get_unique_representation(None), repr(None))
@@ -474,35 +474,33 @@ class GetUniqueRepresentationHelperTestCase(unittest.TestCase):
 
     def test_dicts(self):
         gur = get_unique_representation
-        self.assertEquals(gur({}), repr(''))
-        self.assertEquals(gur({'key1': 'value1'}), repr('--'.join([gur('key1'), gur('value1')])))
-        self.assertEquals(gur({False: [1, 2, 3]}), repr('--'.join([gur(False), repr('--'.join([gur(1), gur(2), gur(3)]))])))
+        self.assertEquals(gur({}), '')
+        self.assertEquals(gur({'key1': 'value1'}), '--'.join([gur('key1'), gur('value1')]))
+        self.assertEquals(gur({False: [1, 2, 3]}), '--'.join([gur(False), '--'.join([gur(1), gur(2), gur(3)])]))
         self.assertEquals(
             gur({False: {'depth': {2: True}}}),
-            repr(
-                '--'.join([gur(False),
-                repr(
-                    '--'.join([gur('depth'),
-                    repr(
-                        '--'.join([gur(2), gur(True)]))
-                    ]))
-                ]))
+            '--'.join(
+                [gur(False), '--'.join(
+                    [gur('depth'), '--'.join(
+                        [gur(2),
+                         gur(True)]
+                    )]
+                )]
+            )
         )
 
     def test_iterables_other_than_dicts(self):
         gur = get_unique_representation
-        self.assertEquals(gur([]), repr(''))
-        self.assertEquals(gur([1, 2, 'str']), repr('--'.join([gur(1), gur(2), gur('str')])))
+        self.assertEquals(gur([]), '')
+        self.assertEquals(gur([1, 2, 'str']), '--'.join([gur(1), gur(2), gur('str')]))
         self.assertEquals(
             gur([1, 2, (3, {4, }, False), 5]),
-            repr(
-                '--'.join([gur(1), gur(2),
-                repr(
-                    '--'.join([gur(3),
-                    repr(
-                        '--'.join([gur(4)])),
-                    gur(False)])),
-                gur(5)]))
+            '--'.join(
+                [gur(1), gur(2), '--'.join(
+                    [gur(3), '--'.join(
+                        [gur(4)]),
+                        gur(False)]),
+                    gur(5)])
         )
 
     def test_instance_fallback_order(self):
@@ -513,13 +511,13 @@ class GetUniqueRepresentationHelperTestCase(unittest.TestCase):
                 self.__cache_key__ = lambda: 'cache_key'
 
         sloth = Sloth()
-        self.assertEquals(get_unique_representation(sloth), repr('cache_key'))
+        self.assertEquals(get_unique_representation(sloth), 'tests.test_pysmartcache.Sloth.cache_key')
 
         del sloth.__cache_key__
-        self.assertEquals(get_unique_representation(sloth), repr('uuid'))
+        self.assertEquals(get_unique_representation(sloth), 'tests.test_pysmartcache.Sloth.uuid')
 
         del sloth.uuid
-        self.assertEquals(get_unique_representation(sloth), repr('id'))
+        self.assertEquals(get_unique_representation(sloth), 'tests.test_pysmartcache.Sloth.id')
 
     def test_max_lenght(self):
         # we strive to keep cache_key as a kind of readable thing.
@@ -631,3 +629,50 @@ class SettingsHierarchyTestCase(unittest.TestCase):
             os.environ['PYSMARTCACHE_VERBOSE'] = '42'
             CacheEngine._get_verbose(None)
         self.assertEquals(str(e.exception), 'PYSMARTCACHE_VERBOSE OS var must be 0 or 1')
+
+
+class CacheKeysTestCase(unittest.TestCase):
+    def test_neither_include_nor_exclude(self):
+        @cache()
+        def this_is_a_thing(a, b, c):
+            return a + b + c
+
+        self.assertEquals(this_is_a_thing.cache_keys_included, [])
+        self.assertEquals(this_is_a_thing.cache_keys_excluded, [])
+        self.assertEquals(this_is_a_thing.cache_keys, ['a', 'b', 'c'])
+
+    def test_both_include_and_exclude(self):
+        with self.assertRaises(RuntimeError):
+            @cache(include=['a', ], exclude=['a', ])
+            def this_is_a_thing(a, b, c):
+                return a + b + c
+
+    def test_include(self):
+        @cache(include=['a', ])
+        def this_is_a_thing(a, b, c):
+            return a + b + c
+
+        self.assertEquals(this_is_a_thing.cache_keys_included, ['a', ])
+        self.assertEquals(this_is_a_thing.cache_keys_excluded, [])
+        self.assertEquals(this_is_a_thing.cache_keys, ['a', ])
+
+    def test_exclude(self):
+        @cache(exclude=['a', ])
+        def this_is_a_thing(a, b, c):
+            return a + b + c
+
+        self.assertEquals(this_is_a_thing.cache_keys_included, [])
+        self.assertEquals(this_is_a_thing.cache_keys_excluded, ['a', ])
+        self.assertEquals(this_is_a_thing.cache_keys, ['b', 'c'])
+
+    def test_exclude_non_existing_field(self):
+        with self.assertRaises(RuntimeError):
+            @cache(exclude=['e', ])
+            def this_is_a_thing(a, b, c):
+                return a + b + c
+
+    def test_exclude_malformed(self):
+        with self.assertRaises(RuntimeError):
+            @cache(exclude=['a.something_that_makes_no_sense_to_be_on_exclusion_rule', ])
+            def this_is_a_thing(a, b, c):
+                return a + b + c
