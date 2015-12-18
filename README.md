@@ -20,5 +20,5 @@ def calculate_universe_mass(some_parameter, another_parameter, whatever):
     return 42
 ```
 
-Seriouly. That's it. =P  
+Seriosuly. That's it. =P  
 For more dense details please refer to [the docs](doc.md)
