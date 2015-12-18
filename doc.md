@@ -26,9 +26,9 @@ This lib uses [memcached](http://memcached.org/). Please install it before tryin
 When you have installed memcached, you just need to run `pip install pysmartcache`.
 
 ### Simplest case
-Let's suppose you have a heavy function and you want to cache it. Of course you can deal with cache manually... or, you can just use the `@cache` decorator.  
-`@cache` by default will cache this function according to its parameters - just like the `memoizer` design pattern. So the simplest usage case is:
-```
+Let's suppose you have a heavy function and you want to cache it. Of course you can deal with cache manually... or, you can just use the `@cache()` decorator.  
+`@cache()` by default will cache this function according to its parameters - just like the `memoizer` design pattern. So the simplest usage case is:
+```python
 from pysmartcache import cache
 
 
@@ -41,7 +41,7 @@ def calculate_universe_mass(some_parameter, another_parameter, whatever):
 Now let's suppose you have a heavy function that receives a parameter such `verbose=True`. Well, (hopefully) this parameter will not change the result of function execution itself, so `cache` should ignore it.  
 For this to work you can use `include` or `exclude` parameters.  
 Using include:
-```
+```python
 from pysmartcache import cache
 
 
@@ -51,7 +51,7 @@ def calculate_universe_mass(some_parameter, another_parameter, whatever, verbose
 ```
 
 OR using exclude:
-```
+```python
 from pysmartcache import cache
 
 
@@ -63,7 +63,7 @@ def calculate_universe_mass(some_parameter, another_parameter, whatever, verbose
 ### Defining keys in-depth
 Sometimes you are trying to cache a method which `self` is not such a good key for cache itself.  
 Let's suppose you have a class `Statistics`, related to an `Investor`, which has an identifier `uuid` attribute. Using `@cache()` as-is will try to cache based on `self`, when we wanted to cache based on `self.investor.uuid`. Voila:
-```
+```python
 from pysmartcache import cache
 
 
@@ -84,7 +84,7 @@ class Statistics(object):
 ### Defining cache uniqueness
 On example below: what if we had 100 methods inside `Statistics` class? Would we need define the cache key as being `['self.investor.uuid', ]` every single time? No, we wouldn't.  
 `pysmartcache` has a lookup for finding the unique representation of every attribute used as a cache key. You can define this attribute manually by creating a method `__cache_key__(self)` inside your classes. Note that this method must return a string. So the example below could be rewritten as follows:
-```
+```python
 from pysmartcache import cache
 
 
@@ -111,7 +111,7 @@ class Statistics(object):
 
 ### Get info about a cache
 In order to get info regarding a cache, use the following:
-```
+```python
 from pysmartcache import cache
 
 
@@ -135,7 +135,7 @@ its_a_sum.cache_info_for(2, 3)
 
 ### Invalidate cache
 In order to clean a cache, use the following:
-```
+```python
 from pysmartcache import cache
 
 
@@ -157,7 +157,7 @@ its_a_sum.cache_info_for(2, 4)
 
 ### Refresh cache
 Refreshing a cache will force cached function's re-execution and update its time to live:
-```
+```python
 import time
 
 from pysmartcache import cache
@@ -199,7 +199,7 @@ Default hosts is `['127.0.0.1:11211', ]`. You can change it by:
 Note also that decorator call parameter supersedes OS var. So if you define both parameters, the one on decorator will be considered.
 
 ### Cache verbosity
-Default verbose parameter is `False`. You can change it by:
+Default verbose parameter is `False`. It's useful to change it when you need to debug cache behavior, and so on. You can change it by:
 - Using `verbose` parameter on `@cache()` call;
 - Defining an environment var called `PYSMARTCACHE_VERBOSE`.  
 
@@ -213,8 +213,8 @@ I'll be glad and will add your name to the project's authors.
 
 ### Preparing environment
 In order to prepare your environment to development:
-```
-git clone ...
+```bash
+# git clone ...
 python setup.py install
 pip install -r requirements_test.txt
 python setup.py test
