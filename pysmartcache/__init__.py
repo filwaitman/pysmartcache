@@ -18,6 +18,10 @@ class InvalidTypeForUniqueRepresentation(Exception):
     pass
 
 
+class ImproperlyConfigured(Exception):
+    pass
+
+
 def _cache_engine_for(func, keys, timeout, hosts, verbose, *function_args, **function_kwargs):
     return CacheEngine(func, keys, function_args, function_kwargs, timeout=timeout, hosts=hosts, verbose=verbose)
 
@@ -47,7 +51,7 @@ def get_unique_representation(obj):
     if hasattr(obj, '__cache_key__'):
         result = obj.__cache_key__()
         if not isinstance(result, basestring):
-            raise InvalidTypeForUniqueRepresentation()
+            raise InvalidTypeForUniqueRepresentation('obj.__cache_key__() must return a string')
         result = '.'.join([obj.__module__, obj.__class__.__name__, result])
 
     elif hasattr(obj, 'uuid'):
@@ -67,7 +71,7 @@ def get_unique_representation(obj):
             json.dumps(obj)
             result = repr(obj)
         except TypeError:
-            raise UniqueRepresentationNotFound()
+            raise UniqueRepresentationNotFound('Object of type {} has not declared an unique representation'.format(type(obj)))
 
     elif isinstance(obj, dict):
         result = []
@@ -136,13 +140,13 @@ class CacheEngine(object):
                 try:
                     timeout = int(timeout)
                 except:
-                    raise RuntimeError('PYSMARTCACHE_TIMEOUT OS var must be numeric')
+                    raise ImproperlyConfigured('PYSMARTCACHE_TIMEOUT OS var must be numeric')
 
         if timeout is None:
             timeout = cls.DEFAULT_TIMEOUT
 
         if timeout <= 0:
-            raise RuntimeError('Timeout must be positive')
+            raise ImproperlyConfigured('PySmartCache timeout must be positive')
 
         return timeout
 
@@ -157,7 +161,7 @@ class CacheEngine(object):
             hosts = cls.DEFAULT_HOSTS
 
         if not hosts:
-            raise RuntimeError('Hosts can not be empty')
+            raise ImproperlyConfigured('PySmartCache hosts can not be empty')
 
         return hosts
 
@@ -169,9 +173,9 @@ class CacheEngine(object):
                 try:
                     verbose = int(verbose)
                 except:
-                    raise RuntimeError('PYSMARTCACHE_VERBOSE OS var must be numeric')
+                    raise ImproperlyConfigured('PYSMARTCACHE_VERBOSE OS var must be numeric')
                 if verbose not in (0, 1):
-                    raise RuntimeError('PYSMARTCACHE_VERBOSE OS var must be 0 or 1')
+                    raise ImproperlyConfigured('PYSMARTCACHE_VERBOSE OS var must be 0 or 1')
 
         if verbose is None:
             verbose = cls.DEFAULT_VERBOSE
@@ -285,7 +289,7 @@ def cache(include=None, exclude=None, timeout=None, hosts=None, verbose=False):
 
         all_keys = inspect.getargspec(func).args
         if include and exclude:
-            raise RuntimeError()
+            raise ImproperlyConfigured('You shall not provide both include and exclude arguments')
         elif not include and not exclude:
             keys = all_keys
         elif include:
@@ -293,10 +297,8 @@ def cache(include=None, exclude=None, timeout=None, hosts=None, verbose=False):
         elif exclude:
             for exclude_key in exclude:
                 if exclude_key not in all_keys:
-                    raise RuntimeError()
-                if '.' in exclude_key:
-                    raise RuntimeError()
-
+                    raise ImproperlyConfigured('Invalid key on exclude: "{}". Keys allowed to be excluded: "{}"'
+                                               .format(exclude_key, '", "'.join(all_keys)))
             keys = [item for item in all_keys if item not in exclude]
 
         wrapper.cache_invalidate_for = functools.partial(cache_invalidate_for, func, keys, timeout, hosts, verbose)

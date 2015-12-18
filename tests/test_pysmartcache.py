@@ -8,7 +8,8 @@ import unittest
 from freezegun import freeze_time
 import mock
 
-from pysmartcache import CacheEngine, cache, depth_getattr, get_unique_representation
+from pysmartcache import (CacheEngine, ImproperlyConfigured, UniqueRepresentationNotFound, cache, depth_getattr,
+                          InvalidTypeForUniqueRepresentation, get_unique_representation)
 
 CACHE_TIMEOUT = 10
 CACHE_VERBOSE = False
@@ -519,10 +520,49 @@ class GetUniqueRepresentationHelperTestCase(unittest.TestCase):
         del sloth.uuid
         self.assertEquals(get_unique_representation(sloth), 'tests.test_pysmartcache.Sloth.id')
 
+        del sloth.id
+        with self.assertRaises(UniqueRepresentationNotFound) as e:
+            get_unique_representation(sloth)
+        self.assertEquals(str(e.exception), "Object of type <class 'tests.test_pysmartcache.Sloth'> "
+                                            "has not declared an unique representation")
+
     def test_max_lenght(self):
         # we strive to keep cache_key as a kind of readable thing.
         # However, when key is too long we need to shorten that - in order to avoid memcached key lenght restrictions.
         self.assertEquals(len(get_unique_representation(range(200))), 32)
+
+    def test_object_without_unique_representation(self):
+        class Sloth(object):
+            pass
+
+        sloth = Sloth()
+        with self.assertRaises(UniqueRepresentationNotFound) as e:
+            get_unique_representation(sloth)
+        self.assertEquals(str(e.exception), "Object of type <class 'tests.test_pysmartcache.Sloth'> "
+                                            "has not declared an unique representation")
+
+    def test_object_with_cache_key_declared_returning_something_different_to_string(self):
+        class Sloth(object):
+            def __init__(self):
+                self.__cache_key__ = lambda: 'cache_key'
+
+        sloth = Sloth()
+        self.assertEquals(get_unique_representation(sloth), 'tests.test_pysmartcache.Sloth.cache_key')
+
+        sloth.__cache_key__ = lambda: False
+        with self.assertRaises(InvalidTypeForUniqueRepresentation) as e:
+            get_unique_representation(sloth)
+        self.assertEquals(str(e.exception), 'obj.__cache_key__() must return a string')
+
+        sloth.__cache_key__ = lambda: 42
+        with self.assertRaises(InvalidTypeForUniqueRepresentation) as e:
+            get_unique_representation(sloth)
+        self.assertEquals(str(e.exception), 'obj.__cache_key__() must return a string')
+
+        sloth.__cache_key__ = lambda: None
+        with self.assertRaises(InvalidTypeForUniqueRepresentation) as e:
+            get_unique_representation(sloth)
+        self.assertEquals(str(e.exception), 'obj.__cache_key__() must return a string')
 
 
 class SettingsHierarchyTestCase(unittest.TestCase):
@@ -584,18 +624,18 @@ class SettingsHierarchyTestCase(unittest.TestCase):
         self.assertEquals(CacheEngine._get_timeout(None), 20)
         self.assertEquals(CacheEngine._get_timeout(10), 10)
 
-        with self.assertRaises(RuntimeError) as e:
+        with self.assertRaises(ImproperlyConfigured) as e:
             os.environ['PYSMARTCACHE_TIMEOUT'] = 'NaN'
             CacheEngine._get_timeout(None)
         self.assertEquals(str(e.exception), 'PYSMARTCACHE_TIMEOUT OS var must be numeric')
 
-        with self.assertRaises(RuntimeError) as e:
+        with self.assertRaises(ImproperlyConfigured) as e:
             CacheEngine._get_timeout(-42)
-        self.assertEquals(str(e.exception), 'Timeout must be positive')
+        self.assertEquals(str(e.exception), 'PySmartCache timeout must be positive')
 
-        with self.assertRaises(RuntimeError) as e:
+        with self.assertRaises(ImproperlyConfigured) as e:
             CacheEngine._get_timeout(0)
-        self.assertEquals(str(e.exception), 'Timeout must be positive')
+        self.assertEquals(str(e.exception), 'PySmartCache timeout must be positive')
 
     def test_low_level_hosts(self):
         self.assertEquals(CacheEngine._get_hosts(None), CacheEngine.DEFAULT_HOSTS)
@@ -605,9 +645,9 @@ class SettingsHierarchyTestCase(unittest.TestCase):
         self.assertEquals(CacheEngine._get_hosts(None), ['192.168.0.1:11212', '192.168.0.1:11213'])
         self.assertEquals(CacheEngine._get_hosts(['192.168.0.1:11212', ]), ['192.168.0.1:11212', ])
 
-        with self.assertRaises(RuntimeError) as e:
+        with self.assertRaises(ImproperlyConfigured) as e:
             CacheEngine._get_hosts([])
-        self.assertEquals(str(e.exception), 'Hosts can not be empty')
+        self.assertEquals(str(e.exception), 'PySmartCache hosts can not be empty')
 
     def test_low_level_verbose(self):
         self.assertEquals(CacheEngine._get_verbose(None), CacheEngine.DEFAULT_VERBOSE)
@@ -620,12 +660,12 @@ class SettingsHierarchyTestCase(unittest.TestCase):
         self.assertEquals(CacheEngine._get_verbose(None), False)
         self.assertEquals(CacheEngine._get_verbose(True), True)
 
-        with self.assertRaises(RuntimeError) as e:
+        with self.assertRaises(ImproperlyConfigured) as e:
             os.environ['PYSMARTCACHE_VERBOSE'] = 'NaN'
             CacheEngine._get_verbose(None)
         self.assertEquals(str(e.exception), 'PYSMARTCACHE_VERBOSE OS var must be numeric')
 
-        with self.assertRaises(RuntimeError) as e:
+        with self.assertRaises(ImproperlyConfigured) as e:
             os.environ['PYSMARTCACHE_VERBOSE'] = '42'
             CacheEngine._get_verbose(None)
         self.assertEquals(str(e.exception), 'PYSMARTCACHE_VERBOSE OS var must be 0 or 1')
@@ -642,10 +682,11 @@ class CacheKeysTestCase(unittest.TestCase):
         self.assertEquals(this_is_a_thing.cache_keys, ['a', 'b', 'c'])
 
     def test_both_include_and_exclude(self):
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(ImproperlyConfigured) as e:
             @cache(include=['a', ], exclude=['a', ])
             def this_is_a_thing(a, b, c):
                 return a + b + c
+        self.assertEquals(str(e.exception), 'You shall not provide both include and exclude arguments')
 
     def test_include(self):
         @cache(include=['a', ])
@@ -666,13 +707,15 @@ class CacheKeysTestCase(unittest.TestCase):
         self.assertEquals(this_is_a_thing.cache_keys, ['b', 'c'])
 
     def test_exclude_non_existing_field(self):
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(ImproperlyConfigured) as e:
             @cache(exclude=['e', ])
             def this_is_a_thing(a, b, c):
                 return a + b + c
+        self.assertEquals(str(e.exception), 'Invalid key on exclude: "e". Keys allowed to be excluded: "a", "b", "c"')
 
     def test_exclude_malformed(self):
-        with self.assertRaises(RuntimeError):
-            @cache(exclude=['a.something_that_makes_no_sense_to_be_on_exclusion_rule', ])
+        with self.assertRaises(ImproperlyConfigured) as e:
+            @cache(exclude=['a.in.depth', ])
             def this_is_a_thing(a, b, c):
                 return a + b + c
+        self.assertEquals(str(e.exception), 'Invalid key on exclude: "a.in.depth". Keys allowed to be excluded: "a", "b", "c"')
