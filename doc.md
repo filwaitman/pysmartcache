@@ -221,8 +221,6 @@ python setup.py test
 ```
 
 ### Rules to contribute
-
-### Rules to contribute
 * Follow the [PEP8](https://www.python.org/dev/peps/pep-0008/).
   * Use 132 characters as line length.
 * Readability is more important than performance.
