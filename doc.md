@@ -221,4 +221,12 @@ python setup.py test
 ```
 
 ### Rules to contribute
-`TODO`
+
+### Rules to contribute
+* Follow the [PEP8](https://www.python.org/dev/peps/pep-0008/).
+  * Use 132 characters as line length.
+* Readability is more important than performance.
+  * If you have to decide between an ugly golden solution and a clean 10% slower one, use the latter.
+* Don't abbrv d cod!
+  * Never abbreviate the code. Variable names, test cases, class names, method names... please, be verbose.
+* Write tests.
