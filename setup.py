@@ -1,13 +1,12 @@
 from setuptools import setup
 
-VERSION = '0.3.1'
+VERSION = '0.3.2'
 
 
 setup(
     name='pysmartcache',
     packages=['pysmartcache', ],
     version=VERSION,
-    description='PySmartCache is a way to get automatic caching and caching invalidation for functions/methods.',
     author='Filipe Waitman',
     author_email='filwaitman@gmail.com',
     install_requires=[x.strip() for x in open('requirements.txt').readlines()],
