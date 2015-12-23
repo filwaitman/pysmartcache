@@ -8,8 +8,8 @@ import unittest
 from freezegun import freeze_time
 import mock
 
-from pysmartcache import (CacheEngine, ImproperlyConfigured, UniqueRepresentationNotFound, cache, depth_getattr,
-                          InvalidTypeForUniqueRepresentation, get_unique_representation)
+from pysmartcache import (CacheEngine, CacheClient, ImproperlyConfigured, UniqueRepresentationNotFound, cache, depth_getattr,
+                          InvalidTypeForUniqueRepresentation, get_unique_representation, MemcachedClient, RedisClient)
 
 CACHE_TIMEOUT = 10
 CACHE_VERBOSE = False
@@ -42,67 +42,71 @@ class KindaSumClass(object):
         return self.a + self.b + self.child.a
 
 
-class CacheCommonTestCase(unittest.TestCase):
+class CacheCommonTestCase(object):
     def setUp(self):
         super(CacheCommonTestCase, self).setUp()
-        CacheEngine.purge()
+
+        os.environ['PYSMARTCACHE_BACKEND'] = self.cache_backend
+        CacheClient.instantiate(self.cache_backend).purge()
         self.now = datetime.datetime.utcnow()
 
         self._patch1 = mock.patch.object(CacheEngine, '_cache_hit_signal')
         self.cache_hit_patched = self._patch1.start()
         self._patch2 = mock.patch.object(CacheEngine, '_cache_outdated_signal')
         self.cache_outdated_patched = self._patch2.start()
-        self._patch3 = mock.patch.object(CacheEngine, '_cache_miss_signal')
-        self.cache_miss_patched = self._patch3.start()
+        self._patch3 = mock.patch.object(CacheEngine, '_cache_missed_signal')
+        self.cache_missed_patched = self._patch3.start()
         self.mocks = [self._patch1, self._patch2, self._patch3]
 
     def tearDown(self):
         super(CacheCommonTestCase, self).tearDown()
+
+        os.environ.pop('PYSMARTCACHE_BACKEND', None)
         for mock_ in self.mocks:
             mock_.stop()
 
-    def test_miss_hit(self):
+    def test_missed_hit(self):
         with freeze_time(self.now):
             result = kinda_sum(2, 3)
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 0)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 1)
+            self.assertEquals(self.cache_missed_patched.call_count, 1)
 
             result = kinda_sum(2, 3)
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 1)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 1)
+            self.assertEquals(self.cache_missed_patched.call_count, 1)
 
-    def test_miss_outdated(self):
+    def test_missed_outdated(self):
         with freeze_time(self.now):
             result = kinda_sum(2, 3)
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 0)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 1)
+            self.assertEquals(self.cache_missed_patched.call_count, 1)
 
         with freeze_time(self.now + datetime.timedelta(seconds=60)):
             result = kinda_sum(2, 3)
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 0)
             self.assertEquals(self.cache_outdated_patched.call_count, 1)
-            self.assertEquals(self.cache_miss_patched.call_count, 1)
+            self.assertEquals(self.cache_missed_patched.call_count, 1)
 
-    def test_miss_miss(self):
+    def test_missed_missed(self):
         with freeze_time(self.now):
             result = kinda_sum(2, 3)
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 0)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 1)
+            self.assertEquals(self.cache_missed_patched.call_count, 1)
 
             result = kinda_sum(2, 4)
             self.assertEquals(result, 6)
             self.assertEquals(self.cache_hit_patched.call_count, 0)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 2)
+            self.assertEquals(self.cache_missed_patched.call_count, 2)
 
     def test_sequence(self):
         with freeze_time(self.now):
@@ -110,50 +114,50 @@ class CacheCommonTestCase(unittest.TestCase):
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 0)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 1)
+            self.assertEquals(self.cache_missed_patched.call_count, 1)
 
             result = kinda_sum(2, 3)
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 1)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 1)
+            self.assertEquals(self.cache_missed_patched.call_count, 1)
 
             result = kinda_sum(2, 4)
             self.assertEquals(result, 6)
             self.assertEquals(self.cache_hit_patched.call_count, 1)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 2)
+            self.assertEquals(self.cache_missed_patched.call_count, 2)
 
             result = kinda_sum(2, 4)
             self.assertEquals(result, 6)
             self.assertEquals(self.cache_hit_patched.call_count, 2)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 2)
+            self.assertEquals(self.cache_missed_patched.call_count, 2)
 
             result = kinda_sum(2, 4)
             self.assertEquals(result, 6)
             self.assertEquals(self.cache_hit_patched.call_count, 3)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 2)
+            self.assertEquals(self.cache_missed_patched.call_count, 2)
 
         with freeze_time(self.now + datetime.timedelta(seconds=11)):
             result = kinda_sum(2, 3)
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 3)
             self.assertEquals(self.cache_outdated_patched.call_count, 1)
-            self.assertEquals(self.cache_miss_patched.call_count, 2)
+            self.assertEquals(self.cache_missed_patched.call_count, 2)
 
             result = kinda_sum(2, 3)
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 4)
             self.assertEquals(self.cache_outdated_patched.call_count, 1)
-            self.assertEquals(self.cache_miss_patched.call_count, 2)
+            self.assertEquals(self.cache_missed_patched.call_count, 2)
 
             result = kinda_sum(2, 4)
             self.assertEquals(result, 6)
             self.assertEquals(self.cache_hit_patched.call_count, 4)
             self.assertEquals(self.cache_outdated_patched.call_count, 2)
-            self.assertEquals(self.cache_miss_patched.call_count, 2)
+            self.assertEquals(self.cache_missed_patched.call_count, 2)
 
     def test_cache_purge(self):
         with freeze_time(self.now):
@@ -161,27 +165,27 @@ class CacheCommonTestCase(unittest.TestCase):
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 0)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 1)
+            self.assertEquals(self.cache_missed_patched.call_count, 1)
 
             result = kinda_sum(2, 4)
             self.assertEquals(result, 6)
             self.assertEquals(self.cache_hit_patched.call_count, 0)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 2)
+            self.assertEquals(self.cache_missed_patched.call_count, 2)
 
-            CacheEngine.purge()
+            CacheClient.instantiate(self.cache_backend).purge()
 
             result = kinda_sum(2, 3)
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 0)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 3)
+            self.assertEquals(self.cache_missed_patched.call_count, 3)
 
             result = kinda_sum(2, 4)
             self.assertEquals(result, 6)
             self.assertEquals(self.cache_hit_patched.call_count, 0)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 4)
+            self.assertEquals(self.cache_missed_patched.call_count, 4)
 
     def test_cache_invalidate(self):
         with freeze_time(self.now):
@@ -189,13 +193,13 @@ class CacheCommonTestCase(unittest.TestCase):
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 0)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 1)
+            self.assertEquals(self.cache_missed_patched.call_count, 1)
 
             result = kinda_sum(2, 4)
             self.assertEquals(result, 6)
             self.assertEquals(self.cache_hit_patched.call_count, 0)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 2)
+            self.assertEquals(self.cache_missed_patched.call_count, 2)
 
             kinda_sum.cache_invalidate_for(2, 4)
 
@@ -203,13 +207,13 @@ class CacheCommonTestCase(unittest.TestCase):
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 1)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 2)
+            self.assertEquals(self.cache_missed_patched.call_count, 2)
 
             result = kinda_sum(2, 4)
             self.assertEquals(result, 6)
             self.assertEquals(self.cache_hit_patched.call_count, 1)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 3)
+            self.assertEquals(self.cache_missed_patched.call_count, 3)
 
     def test_cache_info(self):
         with freeze_time(self.now):
@@ -217,7 +221,7 @@ class CacheCommonTestCase(unittest.TestCase):
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 0)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 1)
+            self.assertEquals(self.cache_missed_patched.call_count, 1)
 
         with freeze_time(self.now + datetime.timedelta(seconds=3)):
             info = kinda_sum.cache_info_for(2, 3)
@@ -241,7 +245,7 @@ class CacheCommonTestCase(unittest.TestCase):
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 0)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 1)
+            self.assertEquals(self.cache_missed_patched.call_count, 1)
             self.assertEquals(kinda_sum.cache_info_for(2, 3)['date added'], self.now)
 
         with freeze_time(self.now + datetime.timedelta(seconds=5)):
@@ -250,7 +254,7 @@ class CacheCommonTestCase(unittest.TestCase):
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 0)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 1)
+            self.assertEquals(self.cache_missed_patched.call_count, 1)
             self.assertEquals(kinda_sum.cache_info_for(2, 3)['date added'], self.now + datetime.timedelta(seconds=5))
 
         with freeze_time(self.now + datetime.timedelta(seconds=11)):
@@ -258,7 +262,7 @@ class CacheCommonTestCase(unittest.TestCase):
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 1)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 1)
+            self.assertEquals(self.cache_missed_patched.call_count, 1)
             self.assertEquals(kinda_sum.cache_info_for(2, 3)['date added'], self.now + datetime.timedelta(seconds=5))
 
     def test_only_declared_keys_matter_for_cache_sake(self):
@@ -267,31 +271,31 @@ class CacheCommonTestCase(unittest.TestCase):
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 0)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 1)
+            self.assertEquals(self.cache_missed_patched.call_count, 1)
 
             result = kinda_sum(2, 3)
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 1)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 1)
+            self.assertEquals(self.cache_missed_patched.call_count, 1)
 
             result = kinda_sum(2, 3, useless_parameter_for_cache=None)
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 2)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 1)
+            self.assertEquals(self.cache_missed_patched.call_count, 1)
 
             result = kinda_sum(2, 3, useless_parameter_for_cache=42)
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 3)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 1)
+            self.assertEquals(self.cache_missed_patched.call_count, 1)
 
             result = kinda_sum(2, 3, useless_parameter_for_cache=True)
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 4)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 1)
+            self.assertEquals(self.cache_missed_patched.call_count, 1)
 
     def test_methods_decorated_inside_classes_work_exactly_the_same_way(self):
         with freeze_time(self.now):
@@ -299,50 +303,50 @@ class CacheCommonTestCase(unittest.TestCase):
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 0)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 1)
+            self.assertEquals(self.cache_missed_patched.call_count, 1)
 
             result = KindaSumClass(2, 3).just_do_it()
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 1)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 1)
+            self.assertEquals(self.cache_missed_patched.call_count, 1)
 
             result = KindaSumClass(2, 4).just_do_it()
             self.assertEquals(result, 6)
             self.assertEquals(self.cache_hit_patched.call_count, 1)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 2)
+            self.assertEquals(self.cache_missed_patched.call_count, 2)
 
             result = KindaSumClass(2, 4).just_do_it()
             self.assertEquals(result, 6)
             self.assertEquals(self.cache_hit_patched.call_count, 2)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 2)
+            self.assertEquals(self.cache_missed_patched.call_count, 2)
 
             result = KindaSumClass(2, 4).just_do_it()
             self.assertEquals(result, 6)
             self.assertEquals(self.cache_hit_patched.call_count, 3)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 2)
+            self.assertEquals(self.cache_missed_patched.call_count, 2)
 
         with freeze_time(self.now + datetime.timedelta(seconds=11)):
             result = KindaSumClass(2, 3).just_do_it()
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 3)
             self.assertEquals(self.cache_outdated_patched.call_count, 1)
-            self.assertEquals(self.cache_miss_patched.call_count, 2)
+            self.assertEquals(self.cache_missed_patched.call_count, 2)
 
             result = KindaSumClass(2, 3).just_do_it()
             self.assertEquals(result, 5)
             self.assertEquals(self.cache_hit_patched.call_count, 4)
             self.assertEquals(self.cache_outdated_patched.call_count, 1)
-            self.assertEquals(self.cache_miss_patched.call_count, 2)
+            self.assertEquals(self.cache_missed_patched.call_count, 2)
 
             result = KindaSumClass(2, 4).just_do_it()
             self.assertEquals(result, 6)
             self.assertEquals(self.cache_hit_patched.call_count, 4)
             self.assertEquals(self.cache_outdated_patched.call_count, 2)
-            self.assertEquals(self.cache_miss_patched.call_count, 2)
+            self.assertEquals(self.cache_missed_patched.call_count, 2)
 
     def test_deep_attribute_changed_on_keys_affect_cache(self):
         with freeze_time(self.now):
@@ -352,7 +356,7 @@ class CacheCommonTestCase(unittest.TestCase):
 
             self.assertEquals(self.cache_hit_patched.call_count, 0)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 1)
+            self.assertEquals(self.cache_missed_patched.call_count, 1)
 
             child = AnotherClass(a=2, b=10)
             result = KindaSumClass(2, 3, child=child).depending_on_child()
@@ -360,7 +364,7 @@ class CacheCommonTestCase(unittest.TestCase):
 
             self.assertEquals(self.cache_hit_patched.call_count, 1)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 1)
+            self.assertEquals(self.cache_missed_patched.call_count, 1)
 
             child = AnotherClass(a=2, b=10000)  # b doesn't matter for this cache
             result = KindaSumClass(2, 3, child=child).depending_on_child()
@@ -368,7 +372,7 @@ class CacheCommonTestCase(unittest.TestCase):
 
             self.assertEquals(self.cache_hit_patched.call_count, 2)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 1)
+            self.assertEquals(self.cache_missed_patched.call_count, 1)
 
             child = AnotherClass(a=37, b=10000)
             result = KindaSumClass(2, 3, child=child).depending_on_child()
@@ -376,7 +380,7 @@ class CacheCommonTestCase(unittest.TestCase):
 
             self.assertEquals(self.cache_hit_patched.call_count, 2)
             self.assertEquals(self.cache_outdated_patched.call_count, 0)
-            self.assertEquals(self.cache_miss_patched.call_count, 2)
+            self.assertEquals(self.cache_missed_patched.call_count, 2)
 
     def test_raise_exception_properly(self):
         @cache(['a', 'b'], timeout=CACHE_TIMEOUT, verbose=CACHE_VERBOSE)
@@ -394,6 +398,14 @@ class CacheCommonTestCase(unittest.TestCase):
         with self.assertRaises(AttributeError) as e:
             kinda_sum_broken2(2, 3)
         self.assertEquals(str(e.exception), "'int' object has no attribute 'wild_attr'")
+
+
+class MemcachedClientEngineTestCase(CacheCommonTestCase, unittest.TestCase):
+    cache_backend = 'memcached'
+
+
+class RedisClientEngineTestCase(CacheCommonTestCase, unittest.TestCase):
+    cache_backend = 'redis'
 
 
 class DepthGetattrHelperTestCase(unittest.TestCase):
@@ -579,7 +591,7 @@ class SettingsHierarchyTestCase(unittest.TestCase):
     def tearDown(self):
         super(SettingsHierarchyTestCase, self).tearDown()
         os.environ.pop('PYSMARTCACHE_TIMEOUT', None)
-        os.environ.pop('PYSMARTCACHE_HOSTS', None)
+        os.environ.pop('PYSMARTCACHE_HOST', None)
         os.environ.pop('PYSMARTCACHE_VERBOSE', None)
 
     def test_neither_decorator_parameter_nor_os_var_present(self):
@@ -637,17 +649,41 @@ class SettingsHierarchyTestCase(unittest.TestCase):
             CacheEngine._get_timeout(0)
         self.assertEquals(str(e.exception), 'PySmartCache timeout must be positive')
 
-    def test_low_level_hosts(self):
-        self.assertEquals(CacheEngine._get_hosts(None), CacheEngine.DEFAULT_HOSTS)
-        self.assertEquals(CacheEngine._get_hosts(['192.168.0.1:11212', ]), ['192.168.0.1:11212', ])
+    def test_low_level_type(self):
+        self.assertEquals(CacheEngine._get_type(None), CacheEngine.DEFAULT_TYPE)
+        self.assertEquals(CacheEngine._get_type('redis'), 'redis')
 
-        os.environ['PYSMARTCACHE_HOSTS'] = '192.168.0.1:11212,192.168.0.1:11213'
-        self.assertEquals(CacheEngine._get_hosts(None), ['192.168.0.1:11212', '192.168.0.1:11213'])
-        self.assertEquals(CacheEngine._get_hosts(['192.168.0.1:11212', ]), ['192.168.0.1:11212', ])
+        os.environ['PYSMARTCACHE_BACKEND'] = 'redis'
+        self.assertEquals(CacheEngine._get_type(None), 'redis')
+        self.assertEquals(CacheEngine._get_type('memcached'), 'memcached')
 
         with self.assertRaises(ImproperlyConfigured) as e:
-            CacheEngine._get_hosts([])
-        self.assertEquals(str(e.exception), 'PySmartCache hosts can not be empty')
+            CacheEngine._get_type('sloth')
+        self.assertEquals(str(e.exception), 'PySmartCache type must be one of "memcached", "redis"')
+
+    def test_low_level_hosts_for_memcached(self):
+        self.assertEquals(MemcachedClient().get_host(None), MemcachedClient.default_host)
+        self.assertEquals(MemcachedClient().get_host(['192.168.0.1:11212', ]), ['192.168.0.1:11212', ])
+
+        os.environ['PYSMARTCACHE_HOST'] = '192.168.0.1:11212,192.168.0.1:11213'
+        self.assertEquals(MemcachedClient().get_host(None), ['192.168.0.1:11212', '192.168.0.1:11213'])
+        self.assertEquals(MemcachedClient().get_host(['192.168.0.1:11212', ]), ['192.168.0.1:11212', ])
+
+        with self.assertRaises(ImproperlyConfigured) as e:
+            MemcachedClient().get_host([])
+        self.assertEquals(str(e.exception), 'PySmartCache host can not be empty')
+
+    def test_low_level_hosts_for_redis(self):
+        self.assertEquals(RedisClient().get_host(None), RedisClient.default_host)
+        self.assertEquals(RedisClient().get_host('192.168.0.1:6378'), '192.168.0.1:6378')
+
+        os.environ['PYSMARTCACHE_HOST'] = '192.168.0.1:6377'
+        self.assertEquals(RedisClient().get_host(None), '192.168.0.1:6377')
+        self.assertEquals(RedisClient().get_host('192.168.0.1:6378'), '192.168.0.1:6378')
+
+        with self.assertRaises(ImproperlyConfigured) as e:
+            RedisClient().get_host('')
+        self.assertEquals(str(e.exception), 'PySmartCache host can not be empty')
 
     def test_low_level_verbose(self):
         self.assertEquals(CacheEngine._get_verbose(None), CacheEngine.DEFAULT_VERBOSE)
