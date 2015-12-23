@@ -39,7 +39,7 @@ def calculate_universe_mass(some_parameter, another_parameter, whatever):
 ```
 
 ### Keys inclusion/exclusion
-Now let's suppose you have a heavy function that receives a parameter such `verbose=True`. Well, (hopefully) this parameter will not change the result of function execution itself, so `cache` should ignore it.  
+Now let's suppose you have a heavy function that receives a parameter such `verbose=True`. Well, (hopefully) this parameter will not change the result of function execution itself, so `@cache()` should ignore it.  
 For this to work you can use `include` or `exclude` parameters.  
 Using include:
 ```python
