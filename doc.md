@@ -23,11 +23,11 @@
 ## Basic usage
 
 ### Installation
-This lib can use as backend [memcached](http://memcached.org/) or [redis](http://redis.io/). Please install the one you want to use first.   
+This lib can use as backend [memcached](http://memcached.org/) or [redis](http://redis.io/). Please install the one you want to use first.     
 After this, you just need to run `pip install pysmartcache`.
 
 ### Simplest case
-Let's suppose you have a heavy function and you want to cache it. Of course you can deal with cache manually... or, you can just use the `@cache()` decorator.  
+Let's suppose you have a heavy function and you want to cache it. Of course you can deal with cache manually... or, you can just use the `@cache()` decorator.   
 `@cache()` by default will cache this function according to its parameters - just like the `memoizer` design pattern. So the simplest usage case is:
 ```python
 from pysmartcache import cache
@@ -187,32 +187,36 @@ its_a_sum.cache_info_for(2, 4)
 ### Cache backend
 Default cache backend is `memcached`. For now `memcached` and `redis` are supported. You can use redis by:
 - Changing `cache_backend` parameter on `@cache()` call;
+- Setting `PySmartCacheSettings.cache_backend` on your project entry-point;
 - Defining an environment var called `PYSMARTCACHE_BACKEND`.  
 
-Note that decorator call parameter supersedes OS var. So if you define both parameters, the one on decorator will be considered.
+Note that decorator call parameter supersedes `PySmartCacheSettings.cache_backend`, which superedes OS var, which obviously supersedes the default value.
 
 ### Cache Time to live / timeout
 Default cache time to live / timeout is `3600` seconds (a.k.a. 1 hour). You can change it by:
 - Using `timeout` parameter on `@cache()` call;
+- Setting `PySmartCacheSettings.timeout` on your project entry-point;
 - Defining an environment var called `PYSMARTCACHE_TIMEOUT`.  
 
-Note that both approaches must define a positive and integer value.
-Note also that decorator call parameter supersedes OS var. So if you define both parameters, the one on decorator will be considered.
+Note that you must define a positive and integer value.  
+Note that decorator call parameter supersedes `PySmartCacheSettings.cache_backend`, which superedes OS var, which obviously supersedes the default value.
 
 ### Cache host
 Default hosts is `['127.0.0.1:11211', ]` for `memcached` and `'127.0.0.1:6379'` for `redis`. You can change it by:
 - Using `cache_host` parameter on `@cache()` call;
+- Setting `PySmartCacheSettings.cache_host` on your project entry-point;
 - Defining an environment var called `PYSMARTCACHE_HOST`.  
 
-Note that decorator call parameter supersedes OS var. So if you define both parameters, the one on decorator will be considered.
+Note that decorator call parameter supersedes `PySmartCacheSettings.cache_backend`, which superedes OS var, which obviously supersedes the default value.
 
 ### Cache verbosity
 Default verbose parameter is `False`. It's useful to change it when you need to debug cache behavior, and so on. You can change it by:
 - Using `verbose` parameter on `@cache()` call;
+- Setting `PySmartCacheSettings.verbose` on your project entry-point;
 - Defining an environment var called `PYSMARTCACHE_VERBOSE`.  
 
-Note that `PYSMARTCACHE_VERBOSE` can only assume values `0` (which is `False`) and `1` (which is `True`).
-Note also that decorator call parameter supersedes OS var. So if you define both parameters, the one on decorator will be considered.
+Note that `PYSMARTCACHE_VERBOSE` can only assume values `0` (which is `False`) and `1` (which is `True`).  
+Note that decorator call parameter supersedes `PySmartCacheSettings.cache_backend`, which superedes OS var, which obviously supersedes the default value.
 
 
 ## Contributing
