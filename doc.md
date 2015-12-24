@@ -226,7 +226,7 @@ Note that decorator call parameter supersedes `PySmartCacheSettings.cache_backen
 
 ### Defining your own clients
 `PySmartCache` comes with `memcached` and `redis` clients implemented. You can implement and use another ones.  
-All you have to do is create a `class` for this new client, inheriting from `CacheClient` and defined a minimal set of methods.  
+All you have to do is create a `class` for this new client, inheriting from `CacheClient` and define a minimal set of methods.  
 Take a look at this example:
 ```python
 from pysmartcache import CacheClient, PySmartCacheSettings
@@ -261,8 +261,20 @@ class MyCustomClient(CacheClient):
 ```
 
 ### Creating custom unique representation rules
-`TODO`
+`PySmartCache` deals with common objects unique representation. This is important in order to generate the cache key.  
+You can define you own unique representation for a given object by implementing `__cache_key__` method (as described [here](#defining-cache-uniqueness), but sometimes we have no access to the class itself - for instance, when it is a third-party library.  
+On these cases, all you have to do is create a `class` for this unique representation, inheriting from `UniqueRepresentation` and define the `get_unique_representation` method.    
+Bear in mind that this method must return a **`string`** if you can deal with the object passed as parameter, and **`None`** otherwise.  
+Take a look at this example:
+```python
+from pysmartcache import UniqueRepresentation
 
+
+class WildObjectRepresentation(UniqueRepresentation):
+    def get_unique_representation(self, obj):
+        if isinstance(obj, WildObject):
+            return str(obj.weird_identifier)
+```
 ## Contributing
 If you like the project and feel that you can contribute for it, feel free!  =]  
 I'll be glad and will add your name to the project's authors.
