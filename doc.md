@@ -15,7 +15,10 @@
   2. [Cache Time to live / timeout](#cache-time-to-live--timeout)
   3. [Cache host](#cache-host)
   4. [Cache verbosity](#cache-verbosity)
-4. [Contributing](#contributing)
+4. [Advanced usage](#advanced-usage)
+  1. [Defining your own clients](#defining-your-own-clients)
+  2. [Creating custom unique representation rules](#creating-custom-unique-representation-rules)
+5. [Contributing](#contributing)
   1. [Preparing environment](#preparing-environment)
   2. [Rules to contribute](#rules-to-contribute)
 
@@ -218,6 +221,47 @@ Default verbose parameter is `False`. It's useful to change it when you need to 
 Note that `PYSMARTCACHE_VERBOSE` can only assume values `0` (which is `False`) and `1` (which is `True`).  
 Note that decorator call parameter supersedes `PySmartCacheSettings.cache_backend`, which superedes OS var, which obviously supersedes the default value.
 
+
+## Advanced usage
+
+### Defining your own clients
+`PySmartCache` comes with `memcached` and `redis` clients implemented. You can implement and use another ones.  
+All you have to do is create a `class` for this new client, inheriting from `CacheClient` and defined a minimal set of methods.  
+Take a look at this example:
+```python
+from pysmartcache import CacheClient, PySmartCacheSettings
+
+
+class MyCustomClient(CacheClient):
+    _DEFAULT_HOST = '127.0.0.1:1111'
+    name = 'custom'  # this is the client's name for lookup. Use something like 'memcached', 'redis', 'rds', 'mongodb', etc
+
+    def get_client(self, host):  # must connect with client and return it
+        # line below gets host the right way, so keep it
+        # `use_list` must be `True` when you want a list of hosts (for a connection pool, for instance)
+        host = PySmartCacheSettings._get_cache_host(host, default=self._DEFAULT_HOST, use_list=False)
+
+        cls = self.__class__  # I strongly suggest you to use this approach to make a singleton for the client
+        if not hasattr(cls, '_client') or not hasattr(cls, '_client_host') or cls._client_host != host:
+            cls._client_host = host
+            cls._client = CreateClientConnection(host)  # that's the important part. =P
+        return cls._client
+
+    def get(self, key):
+        pass
+
+    def set(self, key, value):
+        pass  # I strongly suggest you to always set values as a pickle str (this avoid problems with data types, trust me)
+
+    def delete(self, key):
+        pass
+
+    def purge(self):
+        pass
+```
+
+### Creating custom unique representation rules
+`TODO`
 
 ## Contributing
 If you like the project and feel that you can contribute for it, feel free!  =]  
