@@ -3,7 +3,6 @@ import os
 import unittest
 
 from pysmartcache.clients import MemcachedClient, RedisClient
-from pysmartcache.engine import CacheEngine, cache
 from pysmartcache.exceptions import ImproperlyConfigured
 from pysmartcache.settings import PySmartCacheSettings
 
@@ -30,123 +29,134 @@ class SettingsHierarchyTestCase(unittest.TestCase):
 
         PySmartCacheSettings.reset()
 
-    def test_neither_decorator_parameter_nor_os_var_present(self):
-        @cache([])
-        def whatever():
-            pass
-
-        whatever()
-        self.assertEquals(whatever.cache_info_for()['timeout'], 3600)
-
-    def test_decorator_parameter_present(self):
-        @cache([], timeout=10)
-        def whatever():
-            pass
-
-        whatever()
-        self.assertEquals(whatever.cache_info_for()['timeout'], 10)
-
-    def test_os_var_present(self):
-        @cache([])
-        def whatever():
-            pass
-
-        os.environ['PYSMARTCACHE_TIMEOUT'] = '20'
-        whatever()
-        self.assertEquals(whatever.cache_info_for()['timeout'], 20)
-
-    def test_settings_present(self):
-        @cache([])
-        def whatever():
-            pass
-
-        PySmartCacheSettings.timeout = 42
-        whatever()
-        self.assertEquals(whatever.cache_info_for()['timeout'], 42)
-
-    def test_decorator_parameter_and_os_var_present(self):
-        @cache([], timeout=10)
-        def whatever():
-            pass
-
-        os.environ['PYSMARTCACHE_TIMEOUT'] = '20'
-        whatever()
-        self.assertEquals(whatever.cache_info_for()['timeout'], 10)
-
-    def test_low_level_timeout(self):
-        self.assertEquals(CacheEngine._get_timeout(None), CacheEngine.DEFAULT_TIMEOUT)
-        self.assertEquals(CacheEngine._get_timeout(10), 10)
-
-        os.environ['PYSMARTCACHE_TIMEOUT'] = '20'
-        self.assertEquals(CacheEngine._get_timeout(None), 20)
-        self.assertEquals(CacheEngine._get_timeout(10), 10)
-
-        with self.assertRaises(ImproperlyConfigured) as e:
-            os.environ['PYSMARTCACHE_TIMEOUT'] = 'NaN'
-            CacheEngine._get_timeout(None)
-        self.assertEquals(str(e.exception), 'PYSMARTCACHE_TIMEOUT OS var must be numeric')
-
-        with self.assertRaises(ImproperlyConfigured) as e:
-            CacheEngine._get_timeout(-42)
-        self.assertEquals(str(e.exception), 'PySmartCache timeout must be positive')
-
-        with self.assertRaises(ImproperlyConfigured) as e:
-            CacheEngine._get_timeout(0)
-        self.assertEquals(str(e.exception), 'PySmartCache timeout must be positive')
-
-    def test_low_level_cache_backend(self):
-        self.assertEquals(CacheEngine._get_cache_backend(None), CacheEngine.DEFAULT_CACHE_BACKEND)
-        self.assertEquals(CacheEngine._get_cache_backend('redis'), 'redis')
-
-        os.environ['PYSMARTCACHE_BACKEND'] = 'redis'
-        self.assertEquals(CacheEngine._get_cache_backend(None), 'redis')
-        self.assertEquals(CacheEngine._get_cache_backend('memcached'), 'memcached')
-
-        with self.assertRaises(ImproperlyConfigured) as e:
-            CacheEngine._get_cache_backend('sloth')
-        self.assertEquals(str(e.exception), 'PySmartCache type must be one of "memcached", "redis"')
-
-    def test_low_level_hosts_for_memcached(self):
-        self.assertEquals(MemcachedClient().get_host(None), MemcachedClient.default_host)
-        self.assertEquals(MemcachedClient().get_host(['192.168.0.1:11212', ]), ['192.168.0.1:11212', ])
-
-        os.environ['PYSMARTCACHE_HOST'] = '192.168.0.1:11212,192.168.0.1:11213'
-        self.assertEquals(MemcachedClient().get_host(None), ['192.168.0.1:11212', '192.168.0.1:11213'])
-        self.assertEquals(MemcachedClient().get_host(['192.168.0.1:11212', ]), ['192.168.0.1:11212', ])
-
-        with self.assertRaises(ImproperlyConfigured) as e:
-            MemcachedClient().get_host([])
-        self.assertEquals(str(e.exception), 'PySmartCache host can not be empty')
-
-    def test_low_level_hosts_for_redis(self):
-        self.assertEquals(RedisClient().get_host(None), RedisClient.default_host)
-        self.assertEquals(RedisClient().get_host('192.168.0.1:6378'), '192.168.0.1:6378')
-
-        os.environ['PYSMARTCACHE_HOST'] = '192.168.0.1:6377'
-        self.assertEquals(RedisClient().get_host(None), '192.168.0.1:6377')
-        self.assertEquals(RedisClient().get_host('192.168.0.1:6378'), '192.168.0.1:6378')
-
-        with self.assertRaises(ImproperlyConfigured) as e:
-            RedisClient().get_host('')
-        self.assertEquals(str(e.exception), 'PySmartCache host can not be empty')
-
-    def test_low_level_verbose(self):
-        self.assertEquals(CacheEngine._get_verbose(None), CacheEngine.DEFAULT_VERBOSE)
-        self.assertEquals(CacheEngine._get_verbose(True), True)
-
+    def test_common_verbose(self):
+        PySmartCacheSettings.verbose = True
         os.environ['PYSMARTCACHE_VERBOSE'] = '1'
-        self.assertEquals(CacheEngine._get_verbose(None), True)
 
-        os.environ['PYSMARTCACHE_VERBOSE'] = '0'
-        self.assertEquals(CacheEngine._get_verbose(None), False)
-        self.assertEquals(CacheEngine._get_verbose(True), True)
+        self.assertTrue(PySmartCacheSettings._get_verbose(True))
+        self.assertTrue(PySmartCacheSettings._get_verbose(None))
+
+        PySmartCacheSettings.reset()
+        self.assertTrue(PySmartCacheSettings._get_verbose(None))
+
+        os.environ.pop('PYSMARTCACHE_VERBOSE', None)
+        self.assertFalse(PySmartCacheSettings._get_verbose(None))
+
+    def test_common_timeout(self):
+        PySmartCacheSettings.timeout = 20
+        os.environ['PYSMARTCACHE_TIMEOUT'] = '30'
+
+        self.assertEquals(PySmartCacheSettings._get_timeout(10), 10)
+        self.assertEquals(PySmartCacheSettings._get_timeout(None), 20)
+
+        PySmartCacheSettings.reset()
+        self.assertEquals(PySmartCacheSettings._get_timeout(None), 30)
+
+        os.environ.pop('PYSMARTCACHE_TIMEOUT', None)
+        self.assertEquals(PySmartCacheSettings._get_timeout(None), PySmartCacheSettings._DEFAULT_TIMEOUT)
+
+    def test_common_cache_backend(self):
+        PySmartCacheSettings.cache_backend = 'redis'
+        os.environ['PYSMARTCACHE_BACKEND'] = 'redis'
+
+        self.assertEquals(PySmartCacheSettings._get_cache_backend('redis'), 'redis')
+        self.assertEquals(PySmartCacheSettings._get_cache_backend(None), 'redis')
+
+        PySmartCacheSettings.reset()
+        self.assertEquals(PySmartCacheSettings._get_cache_backend(None), 'redis')
+
+        os.environ.pop('PYSMARTCACHE_BACKEND', None)
+        self.assertEquals(PySmartCacheSettings._get_cache_backend(None), PySmartCacheSettings._DEFAULT_CACHE_BACKEND)
+
+    def test_common_cache_host_memcached(self):
+        PySmartCacheSettings.cache_host = ['127.0.0.1:11213', ]
+        os.environ['PYSMARTCACHE_HOST'] = '127.0.0.1:11212'
+
+        self.assertEquals(
+            PySmartCacheSettings._get_cache_host(['127.0.0.1:11214', ], default=MemcachedClient._DEFAULT_HOST, use_list=True),
+            ['127.0.0.1:11214', ]
+        )
+        self.assertEquals(
+            PySmartCacheSettings._get_cache_host(None, default=MemcachedClient._DEFAULT_HOST, use_list=True),
+            ['127.0.0.1:11213', ]
+        )
+
+        PySmartCacheSettings.reset()
+        self.assertEquals(
+            PySmartCacheSettings._get_cache_host(None, default=MemcachedClient._DEFAULT_HOST, use_list=True),
+            ['127.0.0.1:11212', ]
+        )
+
+        os.environ.pop('PYSMARTCACHE_HOST', None)
+        self.assertEquals(
+            PySmartCacheSettings._get_cache_host(None, default=MemcachedClient._DEFAULT_HOST, use_list=True),
+            MemcachedClient._DEFAULT_HOST
+        )
+
+    def test_common_cache_host_redis(self):
+        PySmartCacheSettings.cache_host = '127.0.0.1:6373'
+        os.environ['PYSMARTCACHE_HOST'] = '127.0.0.1:6372'
+
+        self.assertEquals(
+            PySmartCacheSettings._get_cache_host('127.0.0.1:6374', default=RedisClient._DEFAULT_HOST, use_list=False),
+            '127.0.0.1:6374'
+        )
+        self.assertEquals(
+            PySmartCacheSettings._get_cache_host(None, default=RedisClient._DEFAULT_HOST, use_list=False),
+            '127.0.0.1:6373'
+        )
+
+        PySmartCacheSettings.reset()
+        self.assertEquals(
+            PySmartCacheSettings._get_cache_host(None, default=RedisClient._DEFAULT_HOST, use_list=False),
+            '127.0.0.1:6372'
+        )
+
+        os.environ.pop('PYSMARTCACHE_HOST', None)
+        self.assertEquals(
+            PySmartCacheSettings._get_cache_host(None, default=RedisClient._DEFAULT_HOST, use_list=False),
+            RedisClient._DEFAULT_HOST
+        )
+
+    def test_verbose_nan(self):
+        with self.assertRaises(ImproperlyConfigured) as e:
+            PySmartCacheSettings._get_verbose('NaN NaN NaN NaN Batman!')
+        self.assertEquals(str(e.exception), 'PySmartCache verbose settings must be numeric')
+
+    def test_verbose_different_from_0_or_1(self):
+        with self.assertRaises(ImproperlyConfigured) as e:
+            PySmartCacheSettings._get_verbose(2)
+        self.assertEquals(str(e.exception), 'PySmartCache verbose settings must be 0 or 1')
+
+    def test_timeout_nan(self):
+        with self.assertRaises(ImproperlyConfigured) as e:
+            PySmartCacheSettings._get_timeout('NaN NaN NaN NaN Batman!')
+        self.assertEquals(str(e.exception), 'PySmartCache timeout settings must be numeric')
+
+    def test_timeout_negative(self):
+        with self.assertRaises(ImproperlyConfigured) as e:
+            PySmartCacheSettings._get_timeout(-20)
+        self.assertEquals(str(e.exception), 'PySmartCache timeout settings must be positive')
+
+    def test_timeout_zero(self):
+        with self.assertRaises(ImproperlyConfigured) as e:
+            PySmartCacheSettings._get_timeout(0)
+        self.assertEquals(str(e.exception), 'PySmartCache timeout settings must be positive')
+
+    def test_cache_backend_not_implemented(self):
+        with self.assertRaises(ImproperlyConfigured) as e:
+            PySmartCacheSettings._get_cache_backend('Amazon RDS?!')
+        self.assertEquals(str(e.exception), 'PySmartCache cache backend settings must be one of "memcached", "redis"')
+
+    def test_cache_host_boolean_false(self):
+        with self.assertRaises(ImproperlyConfigured) as e:
+            PySmartCacheSettings._get_cache_host('', default='')
+        self.assertEquals(str(e.exception), 'PySmartCache cache host settings must not be empty')
 
         with self.assertRaises(ImproperlyConfigured) as e:
-            os.environ['PYSMARTCACHE_VERBOSE'] = 'NaN'
-            CacheEngine._get_verbose(None)
-        self.assertEquals(str(e.exception), 'PYSMARTCACHE_VERBOSE OS var must be numeric')
+            PySmartCacheSettings._get_cache_host(None, default=None)
+        self.assertEquals(str(e.exception), 'PySmartCache cache host settings must not be empty')
 
         with self.assertRaises(ImproperlyConfigured) as e:
-            os.environ['PYSMARTCACHE_VERBOSE'] = '42'
-            CacheEngine._get_verbose(None)
-        self.assertEquals(str(e.exception), 'PYSMARTCACHE_VERBOSE OS var must be 0 or 1')
+            PySmartCacheSettings._get_cache_host([], default=[])
+        self.assertEquals(str(e.exception), 'PySmartCache cache host settings must not be empty')

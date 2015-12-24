@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 import abc
 import pickle
-import os
 
-from pysmartcache.exceptions import CacheClientNotFound, ImproperlyConfigured
+from pysmartcache.exceptions import CacheClientNotFound
 from pysmartcache.settings import PySmartCacheSettings
 
 
@@ -29,23 +28,6 @@ class CacheClient(object):
     def __init__(self, host=None):
         self.client = self.get_client(host)
 
-    def get_host(self, host):
-        if host is None:
-            host = PySmartCacheSettings.cache_host
-
-        if host is None:
-            host = os.environ.get('PYSMARTCACHE_HOST')
-            if host and ',' in host:
-                host = host.split(',')
-
-        if host is None:
-            host = self.default_host
-
-        if not host:
-            raise ImproperlyConfigured('PySmartCache host can not be empty')
-
-        return host
-
     @abc.abstractmethod
     def get_client(self, host):
         pass
@@ -68,16 +50,13 @@ class CacheClient(object):
 
 
 class MemcachedClient(CacheClient):
-    default_host = ('127.0.0.1:11211', )
-
+    _DEFAULT_HOST = ['127.0.0.1:11211', ]
     name = 'memcached'
 
     def get_client(self, host=None):
         import pylibmc
 
-        if not host:
-            host = self.get_host(host)
-
+        host = PySmartCacheSettings._get_cache_host(host, default=self._DEFAULT_HOST, use_list=True)
         cls = self.__class__
 
         if not hasattr(cls, '_client') or not hasattr(cls, '_client_host') or cls._client_host != host:
@@ -101,15 +80,13 @@ class MemcachedClient(CacheClient):
 
 
 class RedisClient(CacheClient):
-    default_host = '127.0.0.1:6379'
+    _DEFAULT_HOST = '127.0.0.1:6379'
     name = 'redis'
 
     def get_client(self, host=None):
         import redis
 
-        if not host:
-            host = self.get_host(host)
-
+        host = PySmartCacheSettings._get_cache_host(host, default=self._DEFAULT_HOST, use_list=False)
         cls = self.__class__
 
         if not hasattr(cls, '_client') or not hasattr(cls, '_client_host') or cls._client_host != host:
