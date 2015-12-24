@@ -1,10 +1,34 @@
 # -*- coding: utf-8 -*-
+import abc
 import datetime
 from decimal import Decimal
 import hashlib
 import json
 
 from pysmartcache.exceptions import UniqueRepresentationNotFound, InvalidTypeForUniqueRepresentation
+
+
+class UniqueRepresentation(object):
+    __metaclass__ = abc.ABCMeta
+
+    @classmethod
+    def all_subclasses(cls):
+        return cls.__subclasses__() + [g for s in cls.__subclasses__() for g in s.all_subclasses()]
+
+    @classmethod
+    def to(cls, obj):
+        for subclass in cls.all_subclasses():
+            unique_representation = subclass().get_unique_representation(obj)
+            if unique_representation is not None:
+                if not isinstance(unique_representation, basestring):
+                    raise InvalidTypeForUniqueRepresentation(u'{} returned non-string unique representation for {} instance: {}'
+                                                             .format(subclass, type(obj), unique_representation))
+                return unique_representation
+        raise UniqueRepresentationNotFound('Object of type {} has not declared an unique representation'.format(type(obj)))
+
+    @abc.abstractmethod
+    def get_unique_representation(self, obj):
+        pass
 
 
 def get_unique_representation(obj):
@@ -31,7 +55,7 @@ def get_unique_representation(obj):
             json.dumps(obj)
             result = repr(obj)
         except TypeError:
-            raise UniqueRepresentationNotFound('Object of type {} has not declared an unique representation'.format(type(obj)))
+            return UniqueRepresentation.to(obj)
 
     elif isinstance(obj, dict):
         result = []

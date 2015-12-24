@@ -4,7 +4,7 @@ from decimal import Decimal
 import unittest
 
 from pysmartcache.exceptions import InvalidTypeForUniqueRepresentation, UniqueRepresentationNotFound
-from pysmartcache.object_representations import get_unique_representation
+from pysmartcache.object_representations import UniqueRepresentation, get_unique_representation
 
 
 class GetUniqueRepresentationTestCase(unittest.TestCase):
@@ -115,6 +115,34 @@ class GetUniqueRepresentationTestCase(unittest.TestCase):
         # we strive to keep cache_key as a kind of readable thing.
         # However, when key is too long we need to shorten that - in order to avoid memcached key lenght restrictions.
         self.assertEquals(len(get_unique_representation(range(200))), 32)
+
+    def test_custom_representation(self):
+        class SlothRepresented(object):
+            pass
+
+        class SlothUniqueRepresentation(UniqueRepresentation):
+            def get_unique_representation(self, obj):
+                if isinstance(obj, SlothRepresented):
+                    return 'custom-representation-for-sloth'
+
+        sloth = SlothRepresented()
+        self.assertEquals(get_unique_representation(sloth), 'custom-representation-for-sloth')
+
+    def test_custom_representation_not_returning_string(self):
+        class SlothBadlyRepresented(object):
+            pass
+
+        class SlothUniqueRepresentation(UniqueRepresentation):
+            def get_unique_representation(self, obj):
+                if isinstance(obj, SlothBadlyRepresented):
+                    return 42
+
+        sloth = SlothBadlyRepresented()
+        with self.assertRaises(InvalidTypeForUniqueRepresentation) as e:
+            get_unique_representation(sloth)
+        self.assertEquals(str(e.exception), "<class 'tests.test_object_representations.SlothUniqueRepresentation'> "
+                                            "returned non-string unique representation for "
+                                            "<class 'tests.test_object_representations.SlothBadlyRepresented'> instance: 42")
 
     def test_object_without_unique_representation(self):
         class Sloth(object):
