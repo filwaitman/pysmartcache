@@ -22,7 +22,7 @@ class CacheClient(object):
         for subclass in cls.all_subclasses():
             if subclass.name == name:
                 return subclass(host)
-        raise CacheClientNotFound('Cache client not found with name "{}". Caches implemented: "{}"'
+        raise CacheClientNotFound(u'Cache client not found with name "{}". Caches implemented: "{}"'
                                   .format(name, '", "'.join(cls.all_implementations())))
 
     def __init__(self, host=None):
