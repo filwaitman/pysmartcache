@@ -7,6 +7,7 @@ import os
 from pysmartcache.clients import CacheClient
 from pysmartcache.exceptions import ImproperlyConfigured
 from pysmartcache.object_representations import get_unique_representation
+from pysmartcache.settings import PySmartCacheSettings
 from pysmartcache.utils import depth_getattr
 
 
@@ -30,13 +31,13 @@ def cache_info_for(func, keys, timeout, cache_backend, cache_host, verbose, *fun
 
 class CacheEngine(object):
     DEFAULT_TIMEOUT = 3600
-    DEFAULT_TYPE = 'memcached'
+    DEFAULT_CACHE_BACKEND = 'memcached'
     DEFAULT_VERBOSE = False
 
     def __init__(self, func, keys, function_args, function_kwargs,
-                 timeout=None, cache_backend=None, cache_host=None, verbose=False):
+                 timeout=None, cache_backend=None, cache_host=None, verbose=None):
         self.timeout = self.__class__._get_timeout(timeout)
-        self.cache_backend = self.__class__._get_type(cache_backend)
+        self.cache_backend = self.__class__._get_cache_backend(cache_backend)
         self.verbose = self.__class__._get_verbose(verbose)
 
         self.func = func
@@ -62,6 +63,9 @@ class CacheEngine(object):
     @classmethod
     def _get_timeout(cls, timeout):
         if timeout is None:
+            timeout = PySmartCacheSettings.timeout
+
+        if timeout is None:
             timeout = os.environ.get('PYSMARTCACHE_TIMEOUT')
             if timeout:
                 try:
@@ -78,11 +82,15 @@ class CacheEngine(object):
         return timeout
 
     @classmethod
-    def _get_type(cls, cache_backend):
+    def _get_cache_backend(cls, cache_backend):
+        if cache_backend is None:
+            cache_backend = PySmartCacheSettings.cache_backend
+
         if cache_backend is None:
             cache_backend = os.environ.get('PYSMARTCACHE_BACKEND')
+
         if cache_backend is None:
-            cache_backend = cls.DEFAULT_TYPE
+            cache_backend = cls.DEFAULT_CACHE_BACKEND
 
         if cache_backend not in CacheClient.all_implementations():
             raise ImproperlyConfigured('PySmartCache type must be one of "{}"'
@@ -92,6 +100,9 @@ class CacheEngine(object):
 
     @classmethod
     def _get_verbose(cls, verbose):
+        if verbose is None:
+            verbose = PySmartCacheSettings.verbose
+
         if verbose is None:
             verbose = os.environ.get('PYSMARTCACHE_VERBOSE')
             if verbose:
@@ -104,6 +115,7 @@ class CacheEngine(object):
 
         if verbose is None:
             verbose = cls.DEFAULT_VERBOSE
+
         return verbose
 
     @classmethod
@@ -195,7 +207,7 @@ class CacheEngine(object):
         return self.stored_value
 
 
-def cache(include=None, exclude=None, timeout=None, cache_backend=None, cache_host=None, verbose=False):
+def cache(include=None, exclude=None, timeout=None, cache_backend=None, cache_host=None, verbose=None):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*function_args, **function_kwargs):

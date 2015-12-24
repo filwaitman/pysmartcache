@@ -4,6 +4,7 @@ import pickle
 import os
 
 from pysmartcache.exceptions import CacheClientNotFound, ImproperlyConfigured
+from pysmartcache.settings import PySmartCacheSettings
 
 
 class CacheClient(object):
@@ -29,6 +30,9 @@ class CacheClient(object):
         self.client = self.get_client(host)
 
     def get_host(self, host):
+        if host is None:
+            host = PySmartCacheSettings.cache_host
+
         if host is None:
             host = os.environ.get('PYSMARTCACHE_HOST')
             if host and ',' in host:
