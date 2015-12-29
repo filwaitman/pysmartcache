@@ -16,8 +16,9 @@
   3. [Cache host](#cache-host)
   4. [Cache verbosity](#cache-verbosity)
 4. [Advanced usage](#advanced-usage)
-  1. [Defining your own clients](#defining-your-own-clients)
-  2. [Creating custom unique representation rules](#creating-custom-unique-representation-rules)
+  1. [Defining a custom connection to the client](#defining-a-custom-connection-to-the-client)
+  2. [Defining your own clients](#defining-your-own-clients)
+  3. [Creating custom unique representation rules](#creating-custom-unique-representation-rules)
 5. [Contributing](#contributing)
   1. [Preparing environment](#preparing-environment)
   2. [Rules to contribute](#rules-to-contribute)
@@ -223,6 +224,32 @@ Note that decorator call parameter supersedes `PySmartCacheSettings.cache_backen
 
 
 ## Advanced usage
+
+### Defining a custom connection to the client
+`PySmartCache` comes with `memcached` and `redis` clients implemented. Client connection itself can be customized (in order to pass credentials, set behaviors, and so on).  
+All you have to do is define `PySmartCacheSettings.cache_client` on your project entry-point.  
+Take a look at this example:
+```python
+import pylibmc
+
+from pysmartcache import PySmartCacheSettings
+
+
+PySmartCacheSettings.cache_client = pylibmc.Client(['127.0.0.1:11211', username='admin', password='sikret'
+                                                   behaviors={'tcp_nodelay': True, 'ketama': True})
+```
+You can even use a callable. See below:
+```python
+import pylibmc
+
+from pysmartcache import PySmartCacheSettings
+
+def gimme_the_client():
+    return pylibmc.Client(['127.0.0.1:11211', username='admin', password='sikret' behaviors={'tcp_nodelay': True, 'ketama': True})
+
+PySmartCacheSettings.cache_client = gimme_the_client
+```
+Note that `memcached` client must use `pylibmc` client and `redis` client must use `redis` client.
 
 ### Defining your own clients
 `PySmartCache` comes with `memcached` and `redis` clients implemented. You can implement and use another ones.  
