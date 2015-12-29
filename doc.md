@@ -244,8 +244,11 @@ import pylibmc
 
 from pysmartcache import PySmartCacheSettings
 
+
 def gimme_the_client():
-    return pylibmc.Client(['127.0.0.1:11211', username='admin', password='sikret' behaviors={'tcp_nodelay': True, 'ketama': True})
+    return pylibmc.Client(['127.0.0.1:11211', username='admin', password='sikret' 
+                          behaviors={'tcp_nodelay': True, 'ketama': True})
+
 
 PySmartCacheSettings.cache_client = gimme_the_client
 ```
