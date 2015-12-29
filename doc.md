@@ -235,7 +235,7 @@ import pylibmc
 from pysmartcache import PySmartCacheSettings
 
 
-PySmartCacheSettings.cache_client = pylibmc.Client(['127.0.0.1:11211', username='admin', password='sikret'
+PySmartCacheSettings.cache_client = pylibmc.Client(['127.0.0.1:11211', ], username='admin', password='sikret',
                                                    behaviors={'tcp_nodelay': True, 'ketama': True})
 ```
 You can even use a callable. See below:
@@ -246,7 +246,7 @@ from pysmartcache import PySmartCacheSettings
 
 
 def gimme_the_client():
-    return pylibmc.Client(['127.0.0.1:11211', username='admin', password='sikret' 
+    return pylibmc.Client(['127.0.0.1:11211', ], username='admin', password='sikret',
                           behaviors={'tcp_nodelay': True, 'ketama': True})
 
 
