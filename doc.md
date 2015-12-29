@@ -241,11 +241,7 @@ class MyCustomClient(CacheClient):
         # `use_list` must be `True` when you want a list of hosts (for a connection pool, for instance)
         host = PySmartCacheSettings._get_cache_host(host, default=self._DEFAULT_HOST, use_list=False)
 
-        cls = self.__class__  # I strongly suggest you to use this approach to make a singleton for the client
-        if not hasattr(cls, '_client') or not hasattr(cls, '_client_host') or cls._client_host != host:
-            cls._client_host = host
-            cls._client = CreateClientConnection(host)  # that's the important part. =P
-        return cls._client
+        return CreateClientConnection(host)  # that's the important part. =P
 
     def get(self, key):
         pass
