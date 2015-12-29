@@ -5,12 +5,13 @@ from pysmartcache.exceptions import ImproperlyConfigured
 
 
 class PySmartCacheSettings(object):
-    __slots__ = ['verbose', 'timeout', 'cache_backend', 'cache_host', ]
+    __slots__ = ['verbose', 'timeout', 'cache_backend', 'cache_host', 'cache_client']
 
     verbose = None
     timeout = None
     cache_backend = None
     cache_host = None
+    cache_client = None
 
     _DEFAULT_VERBOSE = False
     _DEFAULT_TIMEOUT = 3600

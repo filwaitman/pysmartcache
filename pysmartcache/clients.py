@@ -26,7 +26,20 @@ class CacheClient(object):
                                   .format(name, '", "'.join(cls.all_implementations())))
 
     def __init__(self, host=None):
-        self.client = self.get_client(host)
+        cls = self.__class__
+
+        if not hasattr(cls, '_client'):
+            if PySmartCacheSettings.cache_client:
+                if callable(PySmartCacheSettings.cache_client):
+                    cls._client = PySmartCacheSettings.cache_client.im_func()
+
+                else:
+                    cls._client = PySmartCacheSettings.cache_client
+
+            else:
+                cls._client = self.get_client(host)
+
+        self.client = cls._client
 
     @abc.abstractmethod
     def get_client(self, host):
@@ -55,14 +68,8 @@ class MemcachedClient(CacheClient):
 
     def get_client(self, host=None):
         import pylibmc
-
         host = PySmartCacheSettings._get_cache_host(host, default=self._DEFAULT_HOST, use_list=True)
-        cls = self.__class__
-
-        if not hasattr(cls, '_client') or not hasattr(cls, '_client_host') or cls._client_host != host:
-            cls._client_host = host
-            cls._client = pylibmc.Client(host)
-        return cls._client
+        return pylibmc.Client(host)
 
     def get(self, key):
         value = self.client.get(key)
@@ -85,14 +92,8 @@ class RedisClient(CacheClient):
 
     def get_client(self, host=None):
         import redis
-
         host = PySmartCacheSettings._get_cache_host(host, default=self._DEFAULT_HOST, use_list=False)
-        cls = self.__class__
-
-        if not hasattr(cls, '_client') or not hasattr(cls, '_client_host') or cls._client_host != host:
-            cls._client_host = host
-            cls._client = redis.StrictRedis.from_url(host)
-        return cls._client
+        return redis.StrictRedis.from_url(host)
 
     def get(self, key):
         value = self.client.get(key)
