@@ -1,6 +1,6 @@
 from setuptools import setup
 
-VERSION = '0.7.1'
+VERSION = '0.7.2'
 
 
 setup(
@@ -13,10 +13,10 @@ setup(
     tests_require=[x.strip() for x in open('requirements_test.txt').readlines()],
     url='https://github.com/filwaitman/pysmartcache',
     download_url='https://github.com/filwaitman/pysmartcache/tarball/{}'.format(VERSION),
-    keywords=['cache', 'caching', 'memcached', 'redis'],
+    keywords=['cache', 'caching', 'memcached', 'redis', 'memoization', 'memoize'],
     test_suite='tests',
     classifiers=[
-        "Development Status :: 1 - Planning",
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
