@@ -10,6 +10,7 @@
   1. [Get info about a cache](#get-info-about-a-cache)
   2. [Invalidate cache](#invalidate-cache)
   3. [Refresh cache](#refresh-cache)
+  4. [Purge cache](#purge-cache)
 3. [Extra settings](#extra-settings)
   1. [Cache backend](#cache-backend)
   2. [Cache Time to live / timeout](#cache-time-to-live--timeout)
@@ -183,6 +184,14 @@ its_a_sum.cache_refresh_for(2, 4)
 
 its_a_sum.cache_info_for(2, 4)
 # {'age': 0.0001, ...  <- cache was just re-created
+```
+
+### Purge cache
+Cache `purge` will flush **everything** on cache. For this you just need to call CacheClient's `purge` as shown below.
+```python
+from pysmartcache import CacheClient
+
+CacheClient.instantiate('memcached').purge()  # or 'redis', and so on
 ```
 
 
