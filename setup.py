@@ -1,6 +1,6 @@
 from setuptools import setup
 
-VERSION = '0.7.2'
+VERSION = '1.0'
 
 
 setup(
@@ -16,7 +16,7 @@ setup(
     keywords=['cache', 'caching', 'memcached', 'redis', 'memoization', 'memoize'],
     test_suite='tests',
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
