@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
+
 import abc
 import pickle
 
 from pysmartcache.exceptions import CacheClientNotFound
 from pysmartcache.settings import PySmartCacheSettings
+import collections
 
 
-class CacheClient(object):
-    __metaclass__ = abc.ABCMeta
-
+class CacheClient(object, metaclass=abc.ABCMeta):
     @classmethod
     def all_subclasses(cls):
         return cls.__subclasses__() + [g for s in cls.__subclasses__() for g in s.all_subclasses()]
@@ -22,7 +22,7 @@ class CacheClient(object):
         for subclass in cls.all_subclasses():
             if subclass.name == name:
                 return subclass(host)
-        raise CacheClientNotFound(u'Cache client not found with name "{}". Caches implemented: "{}"'
+        raise CacheClientNotFound('Cache client not found with name "{}". Caches implemented: "{}"'
                                   .format(name, '", "'.join(cls.all_implementations())))
 
     def __init__(self, host=None):
@@ -30,8 +30,8 @@ class CacheClient(object):
 
         if not hasattr(cls, '_client'):
             if PySmartCacheSettings.cache_client:
-                if callable(PySmartCacheSettings.cache_client):
-                    cls._client = PySmartCacheSettings.cache_client.im_func()
+                if isinstance(PySmartCacheSettings.cache_client, collections.Callable):
+                    cls._client = PySmartCacheSettings.cache_client.__func__()
 
                 else:
                     cls._client = PySmartCacheSettings.cache_client

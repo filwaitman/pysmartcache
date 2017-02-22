@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import datetime
 import functools
 import inspect
@@ -52,8 +53,8 @@ class CacheEngine(object):
         self.stored_at = self.stored_info['date added'] if self.stored_info else None
 
         if self.verbose:
-            print '-' * 50
-            print 'KEY: {}'.format(self.cache_key)
+            print('-' * 50)
+            print('KEY: {}'.format(self.cache_key))
 
     @classmethod
     def _cache_outdated_signal(cls):
@@ -89,12 +90,12 @@ class CacheEngine(object):
 
     def invalidate(self):
         if self.verbose:
-            print 'INVALIDATING'
+            print('INVALIDATING')
         self.cache_client.delete(self.cache_key)
 
     def refresh(self):
         if self.verbose:
-            print 'REFRESHING'
+            print('REFRESHING')
         return self.reset_cache()
 
     def info(self):
@@ -113,17 +114,17 @@ class CacheEngine(object):
         if self.stored_info:
             if self.stored_info['outdated']:
                 if self.verbose:
-                    print 'OUTDATED (added to cache {:.2f} seconds ago)'.format(self.stored_info['age'])
+                    print('OUTDATED (added to cache {:.2f} seconds ago)'.format(self.stored_info['age']))
                 return self.cache_outdated()
 
             else:
                 if self.verbose:
-                    print 'HIT (added to cache {:.2f} seconds ago)'.format(self.stored_info['age'])
+                    print('HIT (added to cache {:.2f} seconds ago)'.format(self.stored_info['age']))
                 return self.cache_hit()
 
         else:
             if self.verbose:
-                print 'MISSED'
+                print('MISSED')
             return self.cache_missed()
 
     def reset_cache(self):

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import unittest
 
 from pysmartcache.clients import CacheClient, MemcachedClient, RedisClient
@@ -17,7 +18,7 @@ class CacheClientTestCase(unittest.TestCase):
     def test_get_invalid_client(self):
         with self.assertRaises(CacheClientNotFound) as e:
             CacheClient.instantiate('hamster')
-        self.assertEquals(str(e.exception), u'Cache client not found with name "hamster". '
+        self.assertEqual(str(e.exception), 'Cache client not found with name "hamster". '
                                             'Caches implemented: "memcached", "redis"')
 
 
@@ -32,15 +33,15 @@ class CacheClientFunctionalTestCase(object):
         self.assertIsNone(client.get('answer'))
 
         client.set('answer', '42')
-        self.assertEquals(client.get('answer'), '42')
+        self.assertEqual(client.get('answer'), '42')
 
         client.set('impulse', '101')
-        self.assertEquals(client.get('impulse'), '101')
-        self.assertEquals(client.get('answer'), '42')
+        self.assertEqual(client.get('impulse'), '101')
+        self.assertEqual(client.get('answer'), '42')
 
         client.delete('impulse')
         self.assertIsNone(client.get('impulse'))
-        self.assertEquals(client.get('answer'), '42')
+        self.assertEqual(client.get('answer'), '42')
 
         client.purge()
         self.assertIsNone(client.get('impulse'))

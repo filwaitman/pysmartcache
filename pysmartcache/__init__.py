@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from pysmartcache.clients import CacheClient, MemcachedClient, RedisClient
 from pysmartcache.engine import CacheEngine, cache
 from pysmartcache.exceptions import (ImproperlyConfigured, UniqueRepresentationNotFound, InvalidTypeForUniqueRepresentation,

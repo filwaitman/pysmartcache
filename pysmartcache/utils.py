@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
+
 def depth_getattr(current_object, key):
     if not key:
         return current_object

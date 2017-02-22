@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
+
 import os
 
 from pysmartcache.exceptions import ImproperlyConfigured
 
 
 class PySmartCacheSettings(object):
-    __slots__ = ['verbose', 'timeout', 'cache_backend', 'cache_host', 'cache_client']
+    KNOWN_ATTRS = ['verbose', 'timeout', 'cache_backend', 'cache_host', 'cache_client']
 
     verbose = None
     timeout = None
@@ -19,7 +20,7 @@ class PySmartCacheSettings(object):
 
     @classmethod
     def reset(cls):
-        for attr in cls.__slots__:
+        for attr in cls.KNOWN_ATTRS:
             setattr(cls, attr, None)
 
     @classmethod
@@ -99,7 +100,7 @@ class PySmartCacheSettings(object):
             raise ImproperlyConfigured('PySmartCache cache host settings must not be empty')
 
         if use_list:
-            if isinstance(host, basestring):
+            if isinstance(host, str):
                 host = host.split(',')
             else:
                 host = list(host)
