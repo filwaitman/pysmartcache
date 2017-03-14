@@ -1,11 +1,8 @@
-# Base
 setuptools==19.1.1
 nose==1.3.7
 
-# 'make test'
 flake8==3.0.4
 coverage==4.2
 
-# Cache client
 redis==2.10.5
 pylibmc==1.5.0
