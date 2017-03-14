@@ -1,6 +1,6 @@
 from setuptools import setup
 
-VERSION = '2.0b2'
+VERSION = '2.0b3'
 BASE_CVS_URL = 'https://github.com/filwaitman/pysmartcache'
 
 setup(
