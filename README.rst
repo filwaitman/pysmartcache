@@ -1,7 +1,7 @@
 PySmartCache
 =============
 
-PySmartCache is a way to get automatic caching and caching invalidation for functions/methods.
+PySmartCache is a way to get automatic caching and caching invalidation for functions/methods. It's working on both python2 and python3.
 
 Idea is quite simple: you just need to decorate your function/method with :code:`@cache()`, and :code:`pysmartcache` will take care of the rest (caching based on arguments, cache invalidation, helpers for cache purge, cache refresh and cache invalidation, and so on).
 

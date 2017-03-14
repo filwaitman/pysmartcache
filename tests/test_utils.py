@@ -1,9 +1,56 @@
 # -*- coding: utf-8 -*-
-
+from __future__ import unicode_literals, absolute_import, print_function
 from collections import namedtuple
+from decimal import Decimal
 import unittest
 
-from pysmartcache.utils import depth_getattr
+from pysmartcache.utils import uid, depth_getattr  # , get_cache_key
+
+
+class Fixture1(object):
+    x = 'x'
+    y = 'y'
+
+    def __init__(self, x='x', y='y'):
+        self.x = x
+        self.y = y
+
+
+class Fixture2(object):
+    x = 'x'
+    y = 'y'
+
+    def __init__(self, x='x', y='y'):
+        self.x = x
+        self.y = y
+
+
+class UidTestCase(unittest.TestCase):
+    def test_common(self):
+        uid1 = uid('xxxx')
+        self.assertEqual(uid('xxxx'), uid1)
+        self.assertNotEqual(uid('xxx'), uid1)
+        self.assertNotEqual(uid('xxxxx'), uid1)
+        self.assertNotEqual(uid('XXX'), uid1)
+
+        uid2 = uid('42')
+        self.assertEqual(uid('42'), uid2)
+        self.assertNotEqual(uid(42), uid2)
+        self.assertNotEqual(uid(42.0), uid2)
+        self.assertNotEqual(uid(Decimal('42.0')), uid2)
+
+        uid3 = uid(Fixture1)
+        self.assertEqual(uid(Fixture1), uid3)
+        self.assertNotEqual(uid(Fixture1()), uid3)
+        self.assertNotEqual(uid(Fixture2), uid3)
+        self.assertNotEqual(uid(Fixture2()), uid3)
+
+        uid4 = uid(Fixture1(x='x', y='y'))
+        self.assertEqual(uid(Fixture1(x='x', y='y')), uid4)
+        self.assertEqual(uid(Fixture1()), uid4)
+        self.assertNotEqual(uid(Fixture1(x='X', y='YY')), uid4)
+        self.assertNotEqual(uid(Fixture2(x='x', y='y')), uid4)
+        self.assertNotEqual(uid(Fixture2()), uid4)
 
 
 class DepthGetattrTestCase(unittest.TestCase):

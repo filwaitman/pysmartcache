@@ -1,7 +1,7 @@
 from setuptools import setup
 
-VERSION = '1.2.5'
-
+VERSION = '2.0-beta1'
+BASE_CVS_URL = 'https://github.com/filwaitman/pysmartcache'
 
 setup(
     name='pysmartcache',
@@ -10,16 +10,16 @@ setup(
     author='Filipe Waitman',
     author_email='filwaitman@gmail.com',
     install_requires=[x.strip() for x in open('requirements.txt').readlines()],
-    tests_require=[x.strip() for x in open('requirements_test.txt').readlines()],
-    url='https://github.com/filwaitman/pysmartcache',
-    download_url='https://github.com/filwaitman/pysmartcache/tarball/{}'.format(VERSION),
-    keywords=['cache', 'caching', 'memcached', 'redis', 'memoization', 'memoize'],
+    url=BASE_CVS_URL,
+    download_url='{}/tarball/{}'.format(BASE_CVS_URL, VERSION),
     test_suite='tests',
+    tests_require=[x.strip() for x in open('requirements_test.txt').readlines()],
+    keywords=[],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
-        "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
         "Operating System :: OS Independent",
-    ]
+        "License :: OSI Approved :: MIT License",
+    ],
 )
