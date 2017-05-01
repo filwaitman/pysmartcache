@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, absolute_import, print_function
-import distutils
+from distutils.util import strtobool
 import hashlib
 import inspect
 import os
@@ -57,7 +57,7 @@ def get_env_var(var_name, cast=None, default=None):
 
     try:
         if cast == bool:
-            return bool(distutils.util.strtobool(env_var_value))
+            return bool(strtobool(env_var_value))
         else:
             return cast(env_var_value)
     except:
