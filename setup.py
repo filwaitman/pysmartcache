@@ -9,6 +9,7 @@ setup(
     version=VERSION,
     author='Filipe Waitman',
     author_email='filwaitman@gmail.com',
+    description='PySmartCache is a way to get automatic caching and caching invalidation for functions/methods.',
     install_requires=[x.strip() for x in open('requirements.txt').readlines()],
     url=BASE_CVS_URL,
     download_url='{}/tarball/{}'.format(BASE_CVS_URL, VERSION),
