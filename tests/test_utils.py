@@ -4,7 +4,10 @@ from collections import namedtuple
 from decimal import Decimal
 import unittest
 
-from pysmartcache.utils import uid, depth_getattr  # , get_cache_key
+import mock
+
+from pysmartcache.exceptions import ImproperlyConfigured
+from pysmartcache.utils import uid, depth_getattr, get_env_var  # , get_cache_key
 
 
 class Fixture1(object):
@@ -77,3 +80,51 @@ class DepthGetattrTestCase(unittest.TestCase):
         with self.assertRaises(AttributeError) as e:
             depth_getattr(something, 'boom')
         self.assertEqual(str(e.exception), "'int' object has no attribute 'boom'")
+
+
+@mock.patch('pysmartcache.utils.os')
+class GetEnvVarTestCase(unittest.TestCase):
+    def test_bool_positive_values(self, os_patched):
+        os_patched.environ.get.return_value = 'True'
+        self.assertTrue(get_env_var('WHATEVER (IT IS MOCKED)', cast=bool))
+
+        os_patched.environ.get.return_value = '1'
+        self.assertTrue(get_env_var('WHATEVER (IT IS MOCKED)', cast=bool))
+
+        os_patched.environ.get.return_value = 't'
+        self.assertTrue(get_env_var('WHATEVER (IT IS MOCKED)', cast=bool))
+
+        os_patched.environ.get.return_value = 'y'
+        self.assertTrue(get_env_var('WHATEVER (IT IS MOCKED)', cast=bool))
+
+        os_patched.environ.get.return_value = 'yes'
+        self.assertTrue(get_env_var('WHATEVER (IT IS MOCKED)', cast=bool))
+
+    def test_bool_negative_values(self, os_patched):
+        os_patched.environ.get.return_value = 'False'
+        self.assertFalse(get_env_var('WHATEVER (IT IS MOCKED)', cast=bool))
+
+        os_patched.environ.get.return_value = '0'
+        self.assertFalse(get_env_var('WHATEVER (IT IS MOCKED)', cast=bool))
+
+        os_patched.environ.get.return_value = 'f'
+        self.assertFalse(get_env_var('WHATEVER (IT IS MOCKED)', cast=bool))
+
+        os_patched.environ.get.return_value = 'n'
+        self.assertFalse(get_env_var('WHATEVER (IT IS MOCKED)', cast=bool))
+
+        os_patched.environ.get.return_value = 'no'
+        self.assertFalse(get_env_var('WHATEVER (IT IS MOCKED)', cast=bool))
+
+    def test_invalid_values(self, os_patched):
+        os_patched.environ.get.return_value = 'Hamster'
+        self.assertEquals(get_env_var('WHATEVER (IT IS MOCKED)'), 'Hamster')  # No casting so that's ok.
+
+        self.assertRaises(ImproperlyConfigured, get_env_var, 'WHATEVER (IT IS MOCKED)', cast=bool)
+        self.assertRaises(ImproperlyConfigured, get_env_var, 'WHATEVER (IT IS MOCKED)', cast=int)
+
+    def test_defaults(self, os_patched):
+        os_patched.environ.get.return_value = None
+        self.assertEquals(get_env_var('WHATEVER (IT IS MOCKED)'), None)
+        self.assertEquals(get_env_var('WHATEVER (IT IS MOCKED)', cast=int), None)
+        self.assertEquals(get_env_var('WHATEVER (IT IS MOCKED)', cast=int, default=2), 2)

@@ -10,7 +10,8 @@
 3. [Extra settings](#extra-settings)
   1. [Cache client](#cache-client)
   2. [Cache Time to live / timeout](#cache-time-to-live--timeout)
-  3. [Cache host](#cache-host)
+  3. [Caching exceptions behavior](#caching-exceptions-behavior)
+  4. [Cache host](#cache-host)
 4. [Advanced usage](#advanced-usage)
   1. [Defining your own clients](#defining-your-own-clients)
 5. [Contributing](#contributing)
@@ -18,13 +19,16 @@
   2. [Rules to contribute](#rules-to-contribute)
 
 
+
 ## Intro
+
 
 ### Installation
 This lib can use as backend [memcached](http://memcached.org/), [redis](http://redis.io/) or [django itself](https://www.djangoproject.com/). Please install/configure the one you want to use first.     
 After this:
 * Set the env var `PYSMARTCACHE_CLIENT` to be one of `memcached`, `redis` or `django`;
 * `pip install pysmartcache`.
+
 
 ### Simplest case
 Let's suppose you have a heavy function and you want to cache it. Of course you can deal with cache manually... or, you can just use the `@cache()` decorator.   
@@ -38,6 +42,7 @@ def calculate_universe_mass(some_parameter, another_parameter, whatever):
     return 42
 ```
 
+
 ### Keys inclusion/exclusion
 Now let's suppose you have a heavy function that receives a parameter such `verbose=True`. Well, (hopefully) this parameter will not change the result of function execution itself, so `@cache()` should ignore it.  
 For this to work you can use `include` or `exclude` parameters.  
@@ -50,6 +55,7 @@ from pysmartcache import cache
 def calculate_universe_mass(some_parameter, another_parameter, whatever, verbose=True):
     return 42
 ```
+
 
 ### Defining keys in-depth
 Sometimes you are trying to cache a method which `self` is not such a good key for cache itself.  
@@ -73,7 +79,9 @@ class Statistics(object):
 ```
 
 
+
 ## Cache helpers
+
 
 ### Refresh cache
 Refreshing a cache will force cached function's re-execution and update its time to live:
@@ -94,22 +102,37 @@ assert its_a_sum(2, 4, _cache_refresh=True) == 6  # Now forcing function executi
 ```
 
 
+
 ## Settings
 
-### Cache client
 
+### Cache client
 This setting is the only one required. For now `Django`, `memcached` and `redis` are supported. Use the env var `PYSMARTCACHE_CLIENT` to set it.
+
 
 ### Cache Time to live / timeout
 Default cache time to live / timeout is `3600` seconds (a.k.a. 1 hour). You can change it by:
 - Using `ttl` parameter on `@cache()` call;
 - Defining an env var called `PYSMARTCACHE_DEFAULT_TTL`.  
 
+
+### Caching exceptions behavior
+By default, PySmartCache will not cache the "result" of an execution if an exception occurs. You can change it by:
+- Setting `cache_exception` parameter on `@cache()` call to True;
+- Defining an env var called `PYSMARTCACHE_DEFAULT_CACHE_EXCEPTION` and setting it to `'True'`.  
+
+You can also define a custom TTL for exceptions cached by:
+- Setting `cache_exception_ttl` parameter on `@cache()` call;
+- Defining an env var called `PYSMARTCACHE_DEFAULT_CACHE_EXCEPTION_TTL`.  
+
+
 ### Cache host
 This setting is required for `memcached`/`redis` clients. Use the env var `PYSMARTCACHE_HOST` to set it.
 
 
+
 ## Advanced usage
+
 
 ### Defining your own clients
 `PySmartCache` comes with `django`, `memcached` and `redis` clients implemented. You can implement and use another ones.  
@@ -126,13 +149,15 @@ class MyCustomClient(CacheClient):
         pass
 
     def set(self, key, value, ttl):
-        pass  # I strongly suggest you to always set values as a pickle str (this avoid problems with data types, trust me)
+        pass  # I strongly suggest you to always set values as a pickle str (it avoids problems with data types, trust me)
 ```
+
 
 
 ## Contributing
 If you like the project and feel that you can contribute for it, feel free!  =]  
 I'll be glad and will add your name to the project's authors.
+
 
 ### Preparing environment
 Firstly, make sure to install both memcached and redis.  
@@ -143,6 +168,7 @@ python setup.py install
 pip install -r requirements_test.txt
 make test
 ```
+
 
 ### Rules to contribute
 * Follow the [PEP8](https://www.python.org/dev/peps/pep-0008/).

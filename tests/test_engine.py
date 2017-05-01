@@ -11,6 +11,10 @@ from tests.base import override_env
 CALLS_COUNT = 0
 
 
+class SuperWeirdException(Exception):
+    pass
+
+
 class Example(object):
     def __init__(self):
         self.id = uuid.uuid4()
@@ -33,6 +37,22 @@ class Example(object):
     def example_method4(self, a, b, c=None):
         return self.heavy_calculator()
 
+    def example_method5(self, let='burn'):
+        calls_count = self.heavy_calculator()
+
+        if let == 'burn':
+            raise SuperWeirdException('Hamsters are upside down!')
+
+        return calls_count
+
+    def example_method6(self, let='burn'):
+        calls_count = self.heavy_calculator()
+
+        if let == 'burn':
+            raise SuperWeirdException('Hamsters are upside down!')
+
+        return calls_count
+
 
 class CacheTestCase(unittest.TestCase):
     @classmethod
@@ -40,7 +60,9 @@ class CacheTestCase(unittest.TestCase):
         cls.env_vars = {
             'PYSMARTCACHE_CLIENT': 'REDIS',
             'PYSMARTCACHE_HOST': '127.0.0.1:6379',
-            'PYSMARTCACHE_DEFAULT_TTL': 2,
+            'PYSMARTCACHE_DEFAULT_TTL': '2',
+            'PYSMARTCACHE_DEFAULT_CACHE_EXCEPTION': 'False',
+            'PYSMARTCACHE_DEFAULT_CACHE_EXCEPTION_TTL': '1',
         }
 
         with override_env(**cls.env_vars):
@@ -48,6 +70,8 @@ class CacheTestCase(unittest.TestCase):
             Example.example_method2 = cache()(Example.example_method2)
             Example.example_method3 = cache(ttl=1)(Example.example_method3)
             Example.example_method4 = cache(keys=['self.id', 'a'])(Example.example_method4)
+            Example.example_method5 = cache(keys=['self.id', 'let'], cache_exception=True)(Example.example_method5)
+            Example.example_method6 = cache(keys=['self.id', 'let'])(Example.example_method6)
 
     def test_ttl_must_be_numeric(self):
         bad_env_vars = self.env_vars.copy()
@@ -163,3 +187,46 @@ class CacheTestCase(unittest.TestCase):
             example2.id = uuid.uuid4()
             example2.example_method4(1, 1)
             self.assertEquals(CALLS_COUNT, 3)  # Cache miss.
+
+    def test_cache_exception_True(self):
+        with override_env(**self.env_vars):
+            example1 = Example()
+            global CALLS_COUNT
+            CALLS_COUNT = 0
+
+            example1.example_method5(let='pass')
+            self.assertEquals(CALLS_COUNT, 1)
+
+            example1.example_method5(let='pass')
+            self.assertEquals(CALLS_COUNT, 1)
+
+            self.assertRaises(SuperWeirdException, example1.example_method5, let='burn')
+            self.assertEquals(CALLS_COUNT, 2)
+
+            self.assertRaises(SuperWeirdException, example1.example_method5, let='burn')
+            self.assertEquals(CALLS_COUNT, 2)
+
+            time.sleep(1.1)  # 1.1 is enough. Since it eas an exception it obeys cache_exception_ttl (1).
+            self.assertRaises(SuperWeirdException, example1.example_method5, let='burn')
+            self.assertEquals(CALLS_COUNT, 3)
+
+    def test_cache_exception_False(self):
+        with override_env(**self.env_vars):
+            example1 = Example()
+            global CALLS_COUNT
+            CALLS_COUNT = 0
+
+            example1.example_method6(let='pass')
+            self.assertEquals(CALLS_COUNT, 1)
+
+            example1.example_method6(let='pass')
+            self.assertEquals(CALLS_COUNT, 1)
+
+            self.assertRaises(SuperWeirdException, example1.example_method6, let='burn')
+            self.assertEquals(CALLS_COUNT, 2)
+
+            self.assertRaises(SuperWeirdException, example1.example_method6, let='burn')
+            self.assertEquals(CALLS_COUNT, 3)
+
+            self.assertRaises(SuperWeirdException, example1.example_method6, let='burn')
+            self.assertEquals(CALLS_COUNT, 4)
