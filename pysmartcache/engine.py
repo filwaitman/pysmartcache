@@ -32,7 +32,7 @@ class cache(object):
             client = self.get_client()
 
             cache_value = client.get(full_cache_key)
-            if (cache_value == CACHE_MISS) or _cache_refresh:
+            if ((type(cache_value) == type(CACHE_MISS)) and (cache_value == CACHE_MISS)) or (_cache_refresh):
                 try:
                     cache_value = func(*args, **kwargs)
                     ttl = self.ttl
