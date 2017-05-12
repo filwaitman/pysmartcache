@@ -24,7 +24,11 @@ def depth_getattr(root, key):
     except ValueError:
         next_root, next_key = (key, None)
 
-    return depth_getattr(getattr(root, next_root), next_key)
+    obj = getattr(root, next_root)
+    if next_root == '__call__':
+        obj = obj()
+
+    return depth_getattr(obj, next_key)
 
 
 def get_cache_key(func, relevant_keys=None, *args, **kwargs):
