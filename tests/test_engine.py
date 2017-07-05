@@ -53,6 +53,9 @@ class Example(object):
 
         return calls_count
 
+    def example_method7(self):
+        return self.heavy_calculator()
+
 
 class CacheTestCase(unittest.TestCase):
     @classmethod
@@ -63,6 +66,7 @@ class CacheTestCase(unittest.TestCase):
             'PYSMARTCACHE_DEFAULT_TTL': '2',
             'PYSMARTCACHE_DEFAULT_CACHE_EXCEPTION': 'False',
             'PYSMARTCACHE_DEFAULT_CACHE_EXCEPTION_TTL': '1',
+            'PYSMARTCACHE_DEFAULT_ENABLED': 'True',
         }
 
         with override_env(**cls.env_vars):
@@ -72,6 +76,7 @@ class CacheTestCase(unittest.TestCase):
             Example.example_method4 = cache(keys=['self.id', 'a'])(Example.example_method4)
             Example.example_method5 = cache(keys=['self.id', 'let'], cache_exception=True)(Example.example_method5)
             Example.example_method6 = cache(keys=['self.id', 'let'])(Example.example_method6)
+            Example.example_method7 = cache(ttl=1, enabled=False)(Example.example_method7)
 
     def test_ttl_must_be_numeric(self):
         bad_env_vars = self.env_vars.copy()

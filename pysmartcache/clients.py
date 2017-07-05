@@ -31,13 +31,13 @@ class CacheClient(object):
         return os.environ.get('PYSMARTCACHE_HOST')
 
     def get(self, key):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def set(self, key, value, ttl):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def purge(self):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
 
 class DjangoClient(CacheClient):
