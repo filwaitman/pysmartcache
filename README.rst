@@ -25,7 +25,7 @@ to this:
         return 42
 
 
-Seriosuly. That's it. =P
+Seriously. That's it. =P
 
 For more dense details please refer to `the docs <https://github.com/filwaitman/pysmartcache/blob/master/doc.md>`_.
 
