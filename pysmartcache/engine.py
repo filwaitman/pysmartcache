@@ -1,9 +1,6 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals, absolute_import, print_function
-
-from pysmartcache.clients import CacheClient
-from pysmartcache.constants import CACHE_MISS
-from pysmartcache.utils import get_cache_key, get_env_var
+from .clients import CacheClient
+from .constants import CACHE_MISS
+from .utils import get_cache_key, get_env_var
 
 
 class cache(object):

@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals, absolute_import, print_function
 import os
 import pickle
 
-from pysmartcache.constants import CACHE_MISS
-from pysmartcache.exceptions import ImproperlyConfigured
+from .constants import CACHE_MISS
+from .exceptions import ImproperlyConfigured
 
 
 class CacheClient(object):

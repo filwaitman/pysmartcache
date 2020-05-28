@@ -1,12 +1,8 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals, absolute_import, print_function
-from distutils.util import strtobool
 import hashlib
 import inspect
 import os
 import pickle
-
-from qualname import qualname
+from distutils.util import strtobool
 
 from pysmartcache.exceptions import ImproperlyConfigured
 
@@ -47,7 +43,7 @@ def get_cache_key(func, relevant_keys=None, *args, **kwargs):
     else:
         relevant_values = call_args
 
-    return '{}-{}'.format(qualname(func), uid(relevant_values))
+    return '{}-{}'.format(func.__qualname__, uid(relevant_values))
 
 
 def get_env_var(var_name, cast=None, default=None):
@@ -64,5 +60,5 @@ def get_env_var(var_name, cast=None, default=None):
             return bool(strtobool(env_var_value))
         else:
             return cast(env_var_value)
-    except:
+    except:  # noqa
         raise ImproperlyConfigured('Var {} could not be casted to type {}'.format(var_name, cast))
