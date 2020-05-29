@@ -1,12 +1,12 @@
 language: python
 cache: pip
 dist: xenial
+services:
+  - memcached
 python:
   - "3.6"
   - "3.7"
   - "3.8"
-before_install:
-  - sudo apt-get -y install libmemcached-dev zlib1g-dev memcached
 install: pip install tox-travis codecov
 script:
   - tox -e lint
