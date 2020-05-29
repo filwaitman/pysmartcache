@@ -14,8 +14,8 @@ Idea is quite simple: you just need to decorate your function/method with `@cach
 
 For instance, change this:
 ```python
-    def calculate_universe_mass(some_parameter, another_parameter, whatever):
-        return 42
+def calculate_universe_mass(some_parameter, another_parameter, whatever):
+    return 42
 ```
 
 to this:
