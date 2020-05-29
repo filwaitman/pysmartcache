@@ -3,6 +3,7 @@ cache: pip
 dist: xenial
 services:
   - memcached
+  - redis-server
 python:
   - "3.6"
   - "3.7"
