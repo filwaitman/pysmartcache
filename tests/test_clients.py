@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals, absolute_import, print_function
-import unittest
 import time
+import unittest
 
-from pysmartcache.clients import CacheClient, RedisClient, MemcachedClient, DjangoClient
+from pysmartcache.clients import CacheClient, DjangoClient, MemcachedClient, RedisClient
 from pysmartcache.constants import CACHE_MISS
 from pysmartcache.exceptions import ImproperlyConfigured
+
 from tests.base import override_env
 
 

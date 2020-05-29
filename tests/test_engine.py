@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals, absolute_import, print_function
 import time
 import unittest
 import uuid
 
 from pysmartcache import cache
 from pysmartcache.exceptions import ImproperlyConfigured
+
 from tests.base import override_env
 
 CALLS_COUNT = 0
@@ -93,27 +92,27 @@ class CacheTestCase(unittest.TestCase):
             CALLS_COUNT = 0
 
             example.example_method1()
-            self.assertEquals(CALLS_COUNT, 1)
+            self.assertEqual(CALLS_COUNT, 1)
 
             example.example_method1()
-            self.assertEquals(CALLS_COUNT, 1)  # Cache hit.
+            self.assertEqual(CALLS_COUNT, 1)  # Cache hit.
 
             time.sleep(0.5)
             example.example_method1()
-            self.assertEquals(CALLS_COUNT, 1)  # Cache hit.
+            self.assertEqual(CALLS_COUNT, 1)  # Cache hit.
 
             time.sleep(0.6)
             example.example_method1()
-            self.assertEquals(CALLS_COUNT, 2)  # Cache miss.
+            self.assertEqual(CALLS_COUNT, 2)  # Cache miss.
 
             example.example_method1()
-            self.assertEquals(CALLS_COUNT, 2)  # Cache hit.
+            self.assertEqual(CALLS_COUNT, 2)  # Cache hit.
 
             example.example_method1(_cache_refresh=False)
-            self.assertEquals(CALLS_COUNT, 2)  # Cache hit.
+            self.assertEqual(CALLS_COUNT, 2)  # Cache hit.
 
             example.example_method1(_cache_refresh=True)
-            self.assertEquals(CALLS_COUNT, 3)  # Cache would hit, but we wanted it refreshed.
+            self.assertEqual(CALLS_COUNT, 3)  # Cache would hit, but we wanted it refreshed.
 
     def test_default_cache_ttl(self):
         with override_env(**self.env_vars):
@@ -122,18 +121,18 @@ class CacheTestCase(unittest.TestCase):
             CALLS_COUNT = 0
 
             example.example_method2()
-            self.assertEquals(CALLS_COUNT, 1)
+            self.assertEqual(CALLS_COUNT, 1)
 
             example.example_method2()
-            self.assertEquals(CALLS_COUNT, 1)  # Cache hit.
+            self.assertEqual(CALLS_COUNT, 1)  # Cache hit.
 
             time.sleep(1)
             example.example_method2()
-            self.assertEquals(CALLS_COUNT, 1)  # Cache hit.
+            self.assertEqual(CALLS_COUNT, 1)  # Cache hit.
 
             time.sleep(1.1)
             example.example_method2()
-            self.assertEquals(CALLS_COUNT, 2)  # Cache miss.
+            self.assertEqual(CALLS_COUNT, 2)  # Cache miss.
 
     def test_multiple_arguments(self):
         with override_env(**self.env_vars):
@@ -142,29 +141,29 @@ class CacheTestCase(unittest.TestCase):
             CALLS_COUNT = 0
 
             example.example_method3(1, 1)
-            self.assertEquals(CALLS_COUNT, 1)
+            self.assertEqual(CALLS_COUNT, 1)
 
             example.example_method3(1, 1)
-            self.assertEquals(CALLS_COUNT, 1)  # Cache hit.
+            self.assertEqual(CALLS_COUNT, 1)  # Cache hit.
 
             example.example_method3(1, 1, None)
-            self.assertEquals(CALLS_COUNT, 1)  # Cache hit.
+            self.assertEqual(CALLS_COUNT, 1)  # Cache hit.
 
             example.example_method3(1, 2, None)
-            self.assertEquals(CALLS_COUNT, 2)  # Cache miss.
+            self.assertEqual(CALLS_COUNT, 2)  # Cache miss.
 
             example.example_method3(1, 1, None)
-            self.assertEquals(CALLS_COUNT, 2)  # Cache hit.
+            self.assertEqual(CALLS_COUNT, 2)  # Cache hit.
 
             example.example_method3(1, 1, 0)
-            self.assertEquals(CALLS_COUNT, 3)  # Cache miss.
+            self.assertEqual(CALLS_COUNT, 3)  # Cache miss.
 
             example.example_method3(1, 1, 0)
-            self.assertEquals(CALLS_COUNT, 3)  # Cache hit.
+            self.assertEqual(CALLS_COUNT, 3)  # Cache hit.
 
             time.sleep(1.1)
             example.example_method3(1, 1, 0)
-            self.assertEquals(CALLS_COUNT, 4)  # Cache miss.
+            self.assertEqual(CALLS_COUNT, 4)  # Cache miss.
 
     def test_relevant_keys(self):
         with override_env(**self.env_vars):
@@ -174,24 +173,24 @@ class CacheTestCase(unittest.TestCase):
             CALLS_COUNT = 0
 
             example1.example_method4(1, 1)
-            self.assertEquals(CALLS_COUNT, 1)
+            self.assertEqual(CALLS_COUNT, 1)
 
             example1.example_method4(1, 2)
-            self.assertEquals(CALLS_COUNT, 1)  # Cache hit: only 'a' argument matters.
+            self.assertEqual(CALLS_COUNT, 1)  # Cache hit: only 'a' argument matters.
 
             example1.example_method4(1, 3, c=24)
-            self.assertEquals(CALLS_COUNT, 1)  # Cache hit: only 'a' argument matters.
+            self.assertEqual(CALLS_COUNT, 1)  # Cache hit: only 'a' argument matters.
 
             example2.example_method4(1, 1)
-            self.assertEquals(CALLS_COUNT, 2)  # Cache miss: (example2, not example1).
+            self.assertEqual(CALLS_COUNT, 2)  # Cache miss: (example2, not example1).
 
             example2.whatever = 'whatever'
             example2.example_method4(1, 1)
-            self.assertEquals(CALLS_COUNT, 2)  # Cache hit.
+            self.assertEqual(CALLS_COUNT, 2)  # Cache hit.
 
             example2.id = uuid.uuid4()
             example2.example_method4(1, 1)
-            self.assertEquals(CALLS_COUNT, 3)  # Cache miss.
+            self.assertEqual(CALLS_COUNT, 3)  # Cache miss.
 
     def test_cache_exception_True(self):
         with override_env(**self.env_vars):
@@ -200,20 +199,20 @@ class CacheTestCase(unittest.TestCase):
             CALLS_COUNT = 0
 
             example1.example_method5(let='pass')
-            self.assertEquals(CALLS_COUNT, 1)
+            self.assertEqual(CALLS_COUNT, 1)
 
             example1.example_method5(let='pass')
-            self.assertEquals(CALLS_COUNT, 1)
+            self.assertEqual(CALLS_COUNT, 1)
 
             self.assertRaises(SuperWeirdException, example1.example_method5, let='burn')
-            self.assertEquals(CALLS_COUNT, 2)
+            self.assertEqual(CALLS_COUNT, 2)
 
             self.assertRaises(SuperWeirdException, example1.example_method5, let='burn')
-            self.assertEquals(CALLS_COUNT, 2)
+            self.assertEqual(CALLS_COUNT, 2)
 
             time.sleep(1.1)  # 1.1 is enough. Since it eas an exception it obeys cache_exception_ttl (1).
             self.assertRaises(SuperWeirdException, example1.example_method5, let='burn')
-            self.assertEquals(CALLS_COUNT, 3)
+            self.assertEqual(CALLS_COUNT, 3)
 
     def test_cache_exception_False(self):
         with override_env(**self.env_vars):
@@ -222,16 +221,16 @@ class CacheTestCase(unittest.TestCase):
             CALLS_COUNT = 0
 
             example1.example_method6(let='pass')
-            self.assertEquals(CALLS_COUNT, 1)
+            self.assertEqual(CALLS_COUNT, 1)
 
             example1.example_method6(let='pass')
-            self.assertEquals(CALLS_COUNT, 1)
+            self.assertEqual(CALLS_COUNT, 1)
 
             self.assertRaises(SuperWeirdException, example1.example_method6, let='burn')
-            self.assertEquals(CALLS_COUNT, 2)
+            self.assertEqual(CALLS_COUNT, 2)
 
             self.assertRaises(SuperWeirdException, example1.example_method6, let='burn')
-            self.assertEquals(CALLS_COUNT, 3)
+            self.assertEqual(CALLS_COUNT, 3)
 
             self.assertRaises(SuperWeirdException, example1.example_method6, let='burn')
-            self.assertEquals(CALLS_COUNT, 4)
+            self.assertEqual(CALLS_COUNT, 4)

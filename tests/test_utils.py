@@ -1,13 +1,11 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals, absolute_import, print_function
+import unittest
 from collections import namedtuple
 from decimal import Decimal
-import unittest
 
 import mock
 
 from pysmartcache.exceptions import ImproperlyConfigured
-from pysmartcache.utils import uid, depth_getattr, get_env_var  # , get_cache_key
+from pysmartcache.utils import depth_getattr, get_env_var, uid
 
 
 class Fixture1(object):
@@ -118,13 +116,13 @@ class GetEnvVarTestCase(unittest.TestCase):
 
     def test_invalid_values(self, os_patched):
         os_patched.environ.get.return_value = 'Hamster'
-        self.assertEquals(get_env_var('WHATEVER (IT IS MOCKED)'), 'Hamster')  # No casting so that's ok.
+        self.assertEqual(get_env_var('WHATEVER (IT IS MOCKED)'), 'Hamster')  # No casting so that's ok.
 
         self.assertRaises(ImproperlyConfigured, get_env_var, 'WHATEVER (IT IS MOCKED)', cast=bool)
         self.assertRaises(ImproperlyConfigured, get_env_var, 'WHATEVER (IT IS MOCKED)', cast=int)
 
     def test_defaults(self, os_patched):
         os_patched.environ.get.return_value = None
-        self.assertEquals(get_env_var('WHATEVER (IT IS MOCKED)'), None)
-        self.assertEquals(get_env_var('WHATEVER (IT IS MOCKED)', cast=int), None)
-        self.assertEquals(get_env_var('WHATEVER (IT IS MOCKED)', cast=int, default=2), 2)
+        self.assertEqual(get_env_var('WHATEVER (IT IS MOCKED)'), None)
+        self.assertEqual(get_env_var('WHATEVER (IT IS MOCKED)', cast=int), None)
+        self.assertEqual(get_env_var('WHATEVER (IT IS MOCKED)', cast=int, default=2), 2)

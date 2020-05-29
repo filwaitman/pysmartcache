@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals, absolute_import, print_function
 import os
 import pickle
 
-from pysmartcache.constants import CACHE_MISS
-from pysmartcache.exceptions import ImproperlyConfigured
+from .constants import CACHE_MISS
+from .exceptions import ImproperlyConfigured
 
 
 class CacheClient(object):
@@ -44,25 +42,30 @@ class DjangoClient(CacheClient):
     requires_host_configuration = False
     name = 'DJANGO'
 
+    def _get_client(self):
+        if not hasattr(self, '_client'):
+            from django.core.cache import cache
+            self._client = cache
+        return self._client
+
     def get(self, key):
-        from django.core.cache import cache
-        return cache.get(key, CACHE_MISS)
+        return self._get_client().get(key, CACHE_MISS)
 
     def set(self, key, value, ttl):
-        from django.core.cache import cache
-        return cache.set(key, value, ttl)
+        return self._get_client().set(key, value, ttl)
 
     def purge(self):
-        from django.core.cache import cache
-        return cache.clear()
+        return self._get_client().clear()
 
 
 class MemcachedClient(CacheClient):
     name = 'MEMCACHED'
 
     def _get_client(self):
-        import pylibmc
-        return pylibmc.Client([self._get_host()])
+        if not hasattr(self, '_client'):
+            import pylibmc
+            self._client = pylibmc.Client([self._get_host()])
+        return self._client
 
     def get(self, key):
         value = self._get_client().get(key)
@@ -81,8 +84,10 @@ class RedisClient(CacheClient):
     name = 'REDIS'
 
     def _get_client(self):
-        import redis
-        return redis.StrictRedis.from_url(self._get_host())
+        if not hasattr(self, '_client'):
+            import redis
+            self._client = redis.StrictRedis.from_url(self._get_host())
+        return self._client
 
     def get(self, key):
         value = self._get_client().get(key)
